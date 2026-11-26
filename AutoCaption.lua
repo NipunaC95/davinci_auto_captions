@@ -6,7 +6,7 @@ Native Lua Script & UI Panel using UIManager
 local ui = fusion.UIManager
 local disp = bmd.UIDispatcher(ui)
 
-local winID = "com.autocaption.resolve.LuaPanel"
+local winID = "com.autocaption.resolve.LuaPanel.v2"
 local existing_win = ui:FindWindow(winID)
 if existing_win then
     existing_win:Show()
@@ -50,27 +50,19 @@ end
 local active_file = found_media[1] or ""
 local media_display = active_file ~= "" and string.match(active_file, "[^/]+$") or "None (Click 'Browse Media...')"
 
-local styles = {
-    "Hormozi Viral",
-    "TikTok Bounce",
-    "MrBeast Highlighter",
-    "Cinematic Box",
-    "Cyber Neon",
-    "Clean Minimalist",
-    "Retro Comic Pop",
-    "Split Tone"
-}
-
-local style_descs = {
-    ["Hormozi Viral"] = "Bold yellow viral text with thick black outline, drop shadow, and pop bounce",
-    ["TikTok Bounce"] = "High contrast white text with solid black stroke and dynamic bounce pop",
-    ["MrBeast Highlighter"] = "Electric neon lime-green text with heavy comic outline and hard drop shadow",
-    ["Cinematic Box"] = "Clean modern sans-serif typography inside a rounded dark translucent box",
-    ["Cyber Neon"] = "Futuristic electric cyan with dual glowing outline and ambient magenta backlight",
-    ["Clean Minimalist"] = "Crisp white subtitle with soft diffused ambient shadow for interviews",
-    ["Retro Comic Pop"] = "Golden yellow text with black border and 3D extruded red shadow offset",
-    ["Split Tone"] = "Gold-to-white gradient with high-contrast dark border"
-}
+local styles = {}
+if #styles == 0 then
+    styles = {
+        { name = "Hormozi Viral", description = "Bold yellow viral text with thick black outline, drop shadow, and pop bounce.", fill = "#FFE600", stroke = "#000000", kind = "pop", background = "#18181D" },
+        { name = "TikTok Bounce", description = "High contrast white text with solid black stroke and dynamic bounce pop.", fill = "#FFFFFF", stroke = "#000000", kind = "pop", background = "#18181D" },
+        { name = "MrBeast Highlighter", description = "Electric neon lime-green text with heavy comic outline and hard drop shadow.", fill = "#39FF14", stroke = "#000000", kind = "comic", background = "#18181D" },
+        { name = "Cinematic Box", description = "Clean modern sans-serif typography inside a rounded dark translucent box.", fill = "#FAFAFA", stroke = "#000000", kind = "box", background = "#101014" },
+        { name = "Cyber Neon", description = "Futuristic electric cyan with dual glowing outline and ambient magenta backlight.", fill = "#00F5FF", stroke = "#0066FF", kind = "neon", background = "#18181D" },
+        { name = "Clean Minimalist", description = "Crisp white subtitle with soft diffused ambient shadow for interviews.", fill = "#FFFFFF", stroke = "#000000", kind = "clean", background = "#18181D" },
+        { name = "Retro Comic Pop", description = "Golden yellow text with black border and 3D extruded red shadow offset.", fill = "#FFD700", stroke = "#000000", kind = "comic", background = "#18181D" },
+        { name = "Split Tone", description = "Gold-to-white gradient with high-contrast dark border.", fill = "#FFE600", stroke = "#000000", kind = "gradient", background = "#18181D" }
+    }
+end
 
 local header_html = [[
 <html><body>
@@ -105,9 +97,9 @@ ui:VGroup({ Spacing = 8, Margin = 15 }, {
     ui:VGap(4),
 
     -- Section 2: Style Preset Picker
-    ui:Label({ Text = "<b>2. Select Caption Style (Drag-and-Drop Preset)</b>", Weight = 0 }),
+    ui:Label({ Text = "<b>2. Current Caption Style</b>", Weight = 0 }),
     ui:ComboBox({ ID = "StyleCombo", Weight = 0 }),
-    ui:Label({ ID = "StyleDesc", Text = '<small style="color:#A0A0B0;">' .. style_descs["Hormozi Viral"] .. "</small>", Weight = 0 }),
+    ui:Label({ ID = "StyleDesc", Text = '<small style="color:#A0A0B0;">' .. styles[1].description .. "</small>", Weight = 0 }),
     ui:VGap(4),
 
     -- Section 3: Timing & Layout
@@ -129,15 +121,16 @@ ui:VGroup({ Spacing = 8, Margin = 15 }, {
 
     -- Action Buttons
     ui:VGap(4),
-    ui:Button({ ID = "ActionBtn", Text = "⚡ AUTO-CAPTION TIMELINE NOW", Weight = 0 }),
+    ui:Button({ ID = "ActionBtn", Text = "⚡ CHOOSE STYLE & AUTO-CAPTION", Weight = 0 }),
     ui:Button({ ID = "CloseBtn", Text = "Close Panel", Weight = 0 }),
 }))
 
 local items = win:GetItems()
 
-for _, s in ipairs(styles) do
-    items.StyleCombo:AddItem(s)
+for _, style in ipairs(styles) do
+    items.StyleCombo:AddItem(style.name)
 end
+items.StyleCombo.CurrentIndex = 0
 
 local chunks = {
     "short (2-3 words, TikTok/Reels)",
@@ -153,11 +146,20 @@ items.ModelCombo:AddItem("base (Recommended - Fast & Accurate)")
 items.ModelCombo:AddItem("tiny (Fastest)")
 items.ModelCombo:AddItem("small (High Accuracy)")
 
+local function html_escape(value)
+    local escaped = tostring(value)
+    escaped = escaped:gsub("&", "&amp;")
+    escaped = escaped:gsub("<", "&lt;")
+    escaped = escaped:gsub(">", "&gt;")
+    escaped = escaped:gsub('"', "&quot;")
+    escaped = escaped:gsub("'", "&#39;")
+    return escaped
+end
+
 win.On.StyleCombo.CurrentIndexChanged = function(ev)
     local idx = items.StyleCombo.CurrentIndex + 1
-    local name = styles[idx] or "Hormozi Viral"
-    local desc = style_descs[name] or ""
-    items.StyleDesc.Text = '<small style="color:#A0A0B0;">' .. desc .. "</small>"
+    local style = styles[idx] or styles[1]
+    items.StyleDesc.Text = '<small style="color:#A0A0B0;">' .. html_escape(style.description) .. "</small>"
 end
 
 win.On.BrowseBtn.Clicked = function(ev)
@@ -209,21 +211,68 @@ end
 
 win.On.RefreshTimelineBtn.Clicked = refresh_live_timeline
 
-win.On.ActionBtn.Clicked = function(ev)
+local function style_preview_html(style)
+    local fill = html_escape(style.fill or "#FFFFFF")
+    local stroke = html_escape(style.stroke or "#000000")
+    local background = html_escape(style.background or "#18181D")
+    local name = html_escape(style.name)
+    local sample
+    if style.kind == "gradient" then
+        sample = '<font color="' .. fill .. '"><b>VIRAL</b></font> <font color="#FFFFFF"><b>CAPTION</b></font>'
+    else
+        sample = '<font color="' .. fill .. '"><b>VIRAL CAPTION</b></font>'
+    end
+    return '<html><body style="margin:0;background:#111111;"><table width="100%" height="74" border="2" bordercolor="' ..
+        stroke .. '" cellpadding="3" cellspacing="0" bgcolor="' .. background ..
+        '"><tr><td align="center">' .. sample ..
+        '</td></tr><tr><td align="center"><font color="#E5E7EB" size="2">' .. name ..
+        '</font></td></tr></table></body></html>'
+end
+
+local gallery_children = {
+    ui:Label({
+        Text = '<html><body><b>Choose a visual caption design</b> — preview the color and treatment, then select it to begin transcription.</body></html>',
+        Weight = 0
+    })
+}
+local gallery_columns = 9
+for row_start = 1, #styles, gallery_columns do
+    local row = {}
+    for column = 0, gallery_columns - 1 do
+        local style_index = row_start + column
+        local style = styles[style_index]
+        if style then
+            row[#row + 1] = ui:VGroup({ Spacing = 2, Weight = 1 }, {
+                ui:Label({ Text = style_preview_html(style), Weight = 1 }),
+                ui:Button({ ID = "SelectStyle" .. style_index, Text = "Use This Style", Weight = 0 })
+            })
+        else
+            row[#row + 1] = ui:Label({ Text = "", Weight = 1 })
+        end
+    end
+    gallery_children[#gallery_children + 1] = ui:HGroup({ Spacing = 4, Weight = 1 }, row)
+end
+gallery_children[#gallery_children + 1] = ui:Button({ ID = "CancelGalleryBtn", Text = "Cancel", Weight = 0 })
+
+local gallery_id = winID .. ".StyleGallery"
+local gallery_win = disp:AddWindow({
+    ID = gallery_id,
+    Geometry = { 80, 50, 1720, 940 },
+    WindowTitle = "Choose a Caption Style"
+}, ui:VGroup({ Spacing = 6, Margin = 12 }, gallery_children))
+
+local function start_transcription(chosen_style)
     local media_file = items.FileBox.Text
     if not media_file or media_file == "" then
         items.StatusMsg.Text = '<span style="color:#EF4444;">Please select a media file or open a timeline with clips first!</span>'
-        return
+        return false
     end
     local python_file = io.open(venv_py, "rb")
     if not python_file then
         items.StatusMsg.Text = '<span style="color:#EF4444;">Python environment not found. Run the setup commands from the project README.</span>'
-        return
+        return false
     end
     python_file:close()
-
-    local style_idx = items.StyleCombo.CurrentIndex + 1
-    local chosen_style = styles[style_idx] or "Hormozi Viral"
 
     local chunk_raw = items.ChunkCombo.CurrentText
     local chunk_mode = "short"
@@ -263,10 +312,49 @@ win.On.ActionBtn.Clicked = function(ev)
     if result == nil or result == false or result == 1 then
         items.StatusMsg.Text = '<span style="color:#EF4444;">Could not start transcription. Check the Python environment setup.</span>'
         items.ActionBtn.Enabled = true
-        return
+        return false
     end
     items.StatusMsg.Text = '<span style="color:#F3A63B;"><b>Transcription started.</b> Captions will import into Resolve when complete.</span>'
     items.ActionBtn.Enabled = true
+    return true
+end
+
+win.On.ActionBtn.Clicked = function(ev)
+    local media_file = items.FileBox.Text
+    if not media_file or media_file == "" then
+        items.StatusMsg.Text = '<span style="color:#EF4444;">Please select a media file or open a timeline with clips first!</span>'
+        return
+    end
+    local python_file = io.open(venv_py, "rb")
+    if not python_file then
+        items.StatusMsg.Text = '<span style="color:#EF4444;">Python environment not found. Run the setup commands from the project README.</span>'
+        return
+    end
+    python_file:close()
+
+    gallery_win:Show()
+    gallery_win:Raise()
+    items.StatusMsg.Text = '<span style="color:#A0A0B0;">Choose a design in the gallery to start transcription.</span>'
+end
+
+for style_index = 1, #styles do
+    local selected_index = style_index
+    gallery_win.On["SelectStyle" .. selected_index].Clicked = function(ev)
+        local style = styles[selected_index]
+        items.StyleCombo.CurrentIndex = selected_index - 1
+        if start_transcription(style.name) then
+            gallery_win:Hide()
+        end
+    end
+end
+
+gallery_win.On.CancelGalleryBtn.Clicked = function(ev)
+    gallery_win:Hide()
+    items.StatusMsg.Text = '<span style="color:#A0A0B0;">Style selection cancelled. Choose a design when ready.</span>'
+end
+
+gallery_win.On[gallery_id].Close = function(ev)
+    gallery_win:Hide()
 end
 
 win:Show()

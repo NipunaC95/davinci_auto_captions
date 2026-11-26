@@ -37,7 +37,8 @@ def generate_fcpxml(
     font = style["font"]
     color_rgb = style.get("color_rgb", (1.0, 1.0, 1.0))
     stroke_width = style.get("stroke_width", 3)
-    stroke_color_str = "0 0 0 1"
+    stroke_rgb = style.get("stroke_rgb", (0.0, 0.0, 0.0))
+    stroke_color_str = f"{stroke_rgb[0]} {stroke_rgb[1]} {stroke_rgb[2]} 1"
 
     color_str = f"{color_rgb[0]} {color_rgb[1]} {color_rgb[2]} 1"
     frame_dur = frames_to_fcpxml_time(1, fps)

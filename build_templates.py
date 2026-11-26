@@ -5,7 +5,10 @@ and packages them into the AutoCaptions.drfx bundle.
 """
 
 import os
+import re
 import zipfile
+
+from core.styles import STYLES
 
 TEMPLATES = {
     "Hormozi Viral": {
@@ -103,6 +106,11 @@ TEMPLATES = {
     },
 }
 
+for style_name, style in STYLES.items():
+    if style_name not in TEMPLATES and "template_config" in style:
+        TEMPLATES[style_name] = style["template_config"]
+
+
 def generate_setting_file(name, config):
     font = config["font"]
     style = config["style"]
@@ -128,15 +136,21 @@ def generate_setting_file(name, config):
     ]
 
     # Element 1: Fill
-    if config.get("gradient"):
+    gradient = config.get("gradient")
+    if gradient:
+        if isinstance(gradient, dict):
+            gradient_colors = gradient["colors"]
+        else:
+            gradient_colors = ((1.0, 0.88, 0.0, 1.0), (1.0, 1.0, 1.0, 1.0))
+        first_color, second_color = gradient_colors
         inputs_lua.extend([
-            '				Name1 = Input { Value = "Gold Gradient Fill", },',
+            '				Name1 = Input { Value = "Gradient Fill", },',
             '				Type1 = Input { Value = 2, },',
             '				ShadingGradient1 = Input {',
             '					Value = Gradient {',
             '						Colors = {',
-            '							[0] = { 1.0, 0.88, 0.0, 1 },',
-            '							[1] = { 1.0, 1.0, 1.0, 1 }',
+            f'							[0] = {{ {first_color[0]}, {first_color[1]}, {first_color[2]}, {first_color[3]} }},',
+            f'							[1] = {{ {second_color[0]}, {second_color[1]}, {second_color[2]}, {second_color[3]} }}',
             '						}',
             '					},',
             '				},',
@@ -180,15 +194,17 @@ def generate_setting_file(name, config):
     if "shadow" in config:
         sh = config["shadow"]
         ox, oy = sh["offset"]
+        shadow_color = sh.get("color", (0.0, 0.0, 0.0, 1.0))
+        red, green, blue, _ = shadow_color
         soft = sh.get("softness", 0)
         alpha = sh.get("alpha", 0.85)
         inputs_lua.extend([
             '				Name3 = Input { Value = "Drop Shadow", },',
             '				Enabled3 = Input { Value = 1, },',
             '				Type3 = Input { Value = 1, },',
-            '				Red3 = Input { Value = 0, },',
-            '				Green3 = Input { Value = 0, },',
-            '				Blue3 = Input { Value = 0, },',
+            f'				Red3 = Input {{ Value = {red}, }},',
+            f'				Green3 = Input {{ Value = {green}, }},',
+            f'				Blue3 = Input {{ Value = {blue}, }},',
             f'				Alpha3 = Input {{ Value = {alpha}, }},',
             f'				Offset3 = Input {{ Value = {{ {ox}, {oy} }}, }},',
         ])
@@ -265,7 +281,7 @@ def generate_setting_file(name, config):
 
     # If animated, wrap in a GroupOperator with KeyStretcher so the intro bounce plays snappily
     if animated:
-        safe_tool_id = name.replace(" ", "")
+        safe_tool_id = re.sub(r"[^A-Za-z0-9_]", "", name)
         content = f"""{{
 	Tools = ordered() {{
 		{safe_tool_id} = GroupOperator {{

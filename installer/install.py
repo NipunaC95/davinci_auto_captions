@@ -27,10 +27,23 @@ def get_resolve_support_paths():
         "scripts_edit": os.path.join(base, "Fusion", "Scripts", "Edit"),
     }
 
+
+def _lua_quote(value):
+    escaped = str(value).replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n")
+    return f'"{escaped}"'
+
+
 def install_all():
     """Installs template styles and scripts into DaVinci Resolve directories."""
     paths = get_resolve_support_paths()
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if base_dir not in sys.path:
+        sys.path.insert(0, base_dir)
+    from build_templates import main as generate_templates
+    from core.styles import STYLES
+
+    generate_templates()
+
     templates_src = os.path.join(base_dir, "templates")
     drfx_src = os.path.join(base_dir, "dist", "AutoCaptions.drfx")
 
@@ -57,11 +70,29 @@ def install_all():
     os.makedirs(script_folder, exist_ok=True)
     script_entry = os.path.join(base_dir, "AutoCaption.lua")
     target_script = os.path.join(script_folder, "AutoCaption.lua")
+    lua_styles = ",\n".join(
+        "    { name = %s, description = %s, fill = %s, stroke = %s, kind = %s }" % (
+            _lua_quote(style["name"]),
+            _lua_quote(style["description"]),
+            _lua_quote(style.get("color_hex", "#FFFFFF")),
+            _lua_quote(style.get("stroke_hex") or "#000000"),
+            _lua_quote(style.get("preview_kind", "pop")),
+        )
+        for style in STYLES.values()
+    )
     with open(script_entry, "r", encoding="utf-8") as source:
         script_content = source.read().replace(
             "__AUTO_CAPTION_PROJECT_DIR__",
             base_dir.replace("\\", "/"),
         )
+    style_placeholder = "local styles = {}"
+    if style_placeholder not in script_content:
+        raise RuntimeError("AutoCaption.lua is missing the style catalog placeholder.")
+    script_content = script_content.replace(
+        style_placeholder,
+        "local styles = {\n" + lua_styles + "\n}",
+        1,
+    )
     with open(target_script, "w", encoding="utf-8") as target:
         target.write(script_content)
 
