@@ -95,6 +95,7 @@ def _write_overlay_timeline_xml(
             piece_end = min(caption_end, clip_end)
             overlay = copy.deepcopy(title)
             overlay.set("ref", effect_id)
+            overlay.set("lane", "1")
             overlay.set("offset", _format_fcpxml_time(cursor - clip_start))
             overlay.set("duration", _format_fcpxml_time(piece_end - cursor))
             clip.append(overlay)
@@ -326,10 +327,14 @@ class ResolveBridge:
                     timeline_name,
                 )
                 imported_timeline = mp.ImportTimelineFromFile(merged_path, {
-                    "importSourceClips": False
+                    "importSourceClips": True
                 })
         else:
             imported_timeline = mp.ImportTimelineFromFile(xml_file_path, {
                 "importSourceClips": False
             })
-        return imported_timeline is not None
+        if imported_timeline is None:
+            return False
+        if current_timeline and not proj.SetCurrentTimeline(imported_timeline):
+            raise RuntimeError("Resolve imported the captioned timeline but could not activate it.")
+        return True
