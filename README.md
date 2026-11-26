@@ -15,7 +15,7 @@ A professional, high-performance auto-captioning plugin and drag-and-drop animat
 
 ## 🎨 72 Visual Styles Included
 
-The eight original styles below are joined by 64 generated variants: eight visual families, each available in Lemon, Cyan, Pink, Lime, Orange, Violet, Ice Blue, and Rose Gold palettes. All 72 styles animate the generated caption text with a pop-in entrance. The desktop app and Resolve panel show visual previews for all styles before transcription begins.
+The eight original styles below are joined by 64 generated variants: eight visual families, each available in Lemon, Cyan, Pink, Lime, Orange, Violet, Ice Blue, and Rose Gold palettes. All 72 styles animate the generated caption text with a brief scale pop-in. The desktop app and Resolve panel show visual previews for all styles before transcription begins.
 
 The generated families are **Viral Pop**, **Neon Glow**, **Comic Burst**, **Glass Caption**, **Clean Creator**, **Outline Flash**, **Gradient Rush**, and **Shadow Pop**. Variant names use the format `Family - Palette` (for example, `Neon Glow - Cyan`).
 
@@ -67,6 +67,7 @@ If `py` is not available, replace it with the full path to your Python executabl
    **Workspace > Scripts > Utility > AutoCaption**
 3. The Auto Caption panel opens in Resolve. It reads the active timeline and refreshes the live timeline connection while open.
 4. Click **Choose Style & Auto-Caption**, select a visual preview from the gallery, and transcription starts with that design.
+5. Captions already on a timeline are not changed by installing the update; transcribe and import again to get the animated caption clips.
 4. If `AutoCaption` is not listed, install or update the scripts with `.\venv\Scripts\python.exe installer\install.py`, then restart Resolve.
 
 ---
