@@ -98,40 +98,102 @@
 					},
 					ViewInfo = OperatorInfo { Pos = { 10, 10 } },
 				},
-				PopTransform = Transform {
+				AnimTransform = Transform {
 					CtrlWZoom = false,
 					Inputs = {
 						Input = Input {
 							SourceOp = "Template",
 							Source = "Output",
 						},
+						Pivot = Input { Value = { 0.5, 0.16 }, },
+						Center = Input {
+							SourceOp = "AnimCenterPath",
+							Source = "Value",
+						},
 						Size = Input {
-							SourceOp = "PopSizeSpline",
+							SourceOp = "AnimSizeSpline",
 							Source = "Value",
 						},
 					},
 					ViewInfo = OperatorInfo { Pos = { 120, 10 } },
 				},
+				TransparentBG = Background {
+					CtrlWZoom = false,
+					Inputs = {
+						Width = Input { Value = 1920, },
+						Height = Input { Value = 1080, },
+						UseFrameFormatSettings = Input { Value = 1, },
+						["Gamut.SLogVersion"] = Input { Value = FuID { "SLog2" }, },
+						TopLeftAlpha = Input { Value = 0, },
+					},
+					ViewInfo = OperatorInfo { Pos = { 120, 90 } },
+				},
+				FadeMerge = Merge {
+					CtrlWZoom = false,
+					Inputs = {
+						Background = Input {
+							SourceOp = "TransparentBG",
+							Source = "Output",
+						},
+						Foreground = Input {
+							SourceOp = "AnimTransform",
+							Source = "Output",
+						},
+						Blend = Input {
+							SourceOp = "AnimOpacitySpline",
+							Source = "Value",
+						},
+						PerformDepthMerge = Input { Value = 0, },
+					},
+					ViewInfo = OperatorInfo { Pos = { 230, 10 } },
+				},
 				KeyframeStretcher1 = KeyStretcher {
 					Inputs = {
 						Keyframes = Input {
-							SourceOp = "PopTransform",
+							SourceOp = "FadeMerge",
 							Source = "Output",
 						},
 						SourceEnd = Input { Value = 120, },
 						StretchStart = Input { Value = 10, },
-						StretchEnd = Input { Value = 115, },
+						StretchEnd = Input { Value = 114, },
 					},
-					ViewInfo = OperatorInfo { Pos = { 230, 10 } },
+					ViewInfo = OperatorInfo { Pos = { 340, 10 } },
 				}
 			},
 		},
-		PopSizeSpline = BezierSpline {
+		AnimCenterY = BezierSpline {
+			SplineColor = { Red = 80, Green = 220, Blue = 120 },
+			KeyFrames = {
+				[0] = { 0.475, RH = { 3.15, 0.01875 } },
+				[9] = { 0.5, LH = { -4.05, 0 } }
+			}
+		},
+		AnimCenterPath = XYPath {
+			ShowKeyPoints = false,
+			DrawMode = "ModifyOnly",
+			CtrlWZoom = false,
+			Inputs = {
+				X = Input { Value = 0.5, },
+				Y = Input {
+					SourceOp = "AnimCenterY",
+					Source = "Value",
+				},
+			}
+		},
+		AnimSizeSpline = BezierSpline {
 			SplineColor = { Red = 255, Green = 200, Blue = 0 },
 			KeyFrames = {
-				[0] = { 0.82, Flags = { Linear = true } },
-				[4] = { 1.08, Flags = { Linear = true } },
-				[7] = { 1.00, Flags = { Linear = true } }
+				[0] = { 0.96, RH = { 3.15, 0.03 } },
+				[9] = { 1, LH = { -4.05, 0 } }
+			}
+		},
+		AnimOpacitySpline = BezierSpline {
+			SplineColor = { Red = 200, Green = 120, Blue = 255 },
+			KeyFrames = {
+				[0] = { 0, RH = { 2.8, 0.75 } },
+				[8] = { 1, LH = { -3.6, 0 }, RH = { 37.45, 0 } },
+				[115] = { 1, LH = { -48.15, 0 }, RH = { 1.75, -0.75 } },
+				[120] = { 0, LH = { -2.25, 0 } }
 			}
 		}
 	},

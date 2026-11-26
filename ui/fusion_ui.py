@@ -4,9 +4,13 @@ Appears directly INSIDE DaVinci Resolve under Workspace > Scripts > Utility > Au
 """
 
 import os
+import subprocess
 import sys
 import tempfile
 import threading
+
+from core.styles import STYLES
+from core.timeline_injector import ResolveBridge
 
 def run_fusion_ui(fusion_app=None, scripting_module=None, resolve_app=None):
     fu = fusion_app
@@ -63,16 +67,7 @@ def run_fusion_ui(fusion_app=None, scripting_module=None, resolve_app=None):
     file_display = os.path.basename(active_file) if active_file else "No media clips detected on timeline"
 
     # Style presets
-    styles = [
-        "Hormozi Viral",
-        "TikTok Bounce",
-        "MrBeast Highlighter",
-        "Cinematic Box",
-        "Cyber Neon",
-        "Clean Minimalist",
-        "Retro Comic Pop",
-        "Split Tone"
-    ]
+    styles = list(STYLES.keys())
 
     header_html = """
     <html><body>
@@ -155,14 +150,8 @@ def run_fusion_ui(fusion_app=None, scripting_module=None, resolve_app=None):
 
     # Style description mapping
     style_descs = {
-        "Hormozi Viral": "Bold yellow viral text with thick black outline, drop shadow, and pop bounce",
-        "TikTok Bounce": "High contrast white text with solid black stroke and dynamic bounce pop",
-        "MrBeast Highlighter": "Electric neon lime-green text with heavy comic outline and hard drop shadow",
-        "Cinematic Box": "Clean modern sans-serif typography inside a rounded dark translucent box",
-        "Cyber Neon": "Futuristic electric cyan with dual glowing outline and ambient magenta backlight",
-        "Clean Minimalist": "Crisp white subtitle with soft diffused ambient shadow for interviews",
-        "Retro Comic Pop": "Golden yellow text with black border and 3D extruded red shadow offset",
-        "Split Tone": "Gold-to-white gradient with high-contrast dark border"
+        name: f"{data['description']} [{data.get('animation_label', 'Animated')}]"
+        for name, data in STYLES.items()
     }
 
     # Event Handlers
@@ -259,11 +248,9 @@ def run_fusion_ui(fusion_app=None, scripting_module=None, resolve_app=None):
                 xml_path = os.path.expanduser(f"~/Movies/Captions_{safe_style}.fcpxml")
 
                 if os.path.exists(xml_path):
-                    # Automatically import into DaVinci Resolve!
-                    mp = proj.GetMediaPool() if proj else None
-                    imported = False
-                    if mp:
-                        imported = mp.ImportTimelineFromFile(xml_path, {"importSourceClips": False})
+                    # Overlay onto the active timeline (preserving existing captions) when possible
+                    bridge = ResolveBridge(resolve)
+                    imported = bridge.import_timeline_xml(xml_path)
                     
                     if imported:
                         items['StatusMsg'].Text = f'<span style="color:#10B981;"><b>✓ Success!</b> Imported Captions timeline with <b>{chosen_style}</b> style!</span>'

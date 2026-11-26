@@ -66,17 +66,21 @@ def main():
     xml_path = os.path.join(movies_dir, f"Captions_{safe_style}.fcpxml")
     srt_path = os.path.join(movies_dir, f"Captions_{safe_style}.srt")
 
+    bridge = ResolveBridge()
+    fps = 30.0
+    if bridge.is_connected():
+        fps = bridge.get_timeline_info().get("fps", 30.0)
+
     generate_fcpxml(
         segments=segments,
         output_path=xml_path,
-        fps=30.0,
+        fps=fps,
         style_name=args.style,
         timeline_name=f"Captions_{args.style}"
     )
     export_srt(segments, srt_path)
 
     # Attempt automatic timeline import if requested
-    bridge = ResolveBridge()
     imported = False
     if args.auto_import and bridge.is_connected():
         imported = bridge.import_timeline_xml(xml_path)

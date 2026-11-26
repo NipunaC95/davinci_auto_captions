@@ -456,9 +456,10 @@ class AutoCaptionApp(tk.Tk):
                 card, text=style_name, bg="#1F1F27", fg="#FFFFFF",
                 font=("Helvetica", 10, "bold"), wraplength=230, justify="left",
             ).pack(fill="x", anchor="w", pady=(0, 5))
+            animation_label = style.get("animation_label", "Pop Bounce").upper()
             tk.Label(
                 card,
-                text="ANIMATED POP-IN" if style.get("animated") else "STATIC",
+                text=f"ANIMATED • {animation_label}" if style.get("animated") else "STATIC",
                 bg="#1F1F27",
                 fg="#F3A63B" if style.get("animated") else "#9E9EAF",
                 font=("Helvetica", 8, "bold"),

@@ -26,6 +26,25 @@ def _format_fcpxml_time(value: Fraction) -> str:
     return f"{value.numerator}/{value.denominator}s"
 
 
+_PRIMARY_STORYLINE_TAGS = {"asset-clip", "clip", "sync-clip", "mc-clip", "ref-clip", "gap"}
+
+
+def _max_existing_lane(spine: ET.Element) -> int:
+    """Finds the highest positive lane across all connected clips/captions on the spine."""
+    max_lane = 0
+    for element in spine.iter():
+        lane_raw = element.get("lane")
+        if lane_raw is None:
+            continue
+        try:
+            lane_num = int(lane_raw)
+        except ValueError:
+            continue
+        if lane_num > max_lane:
+            max_lane = lane_num
+    return max_lane
+
+
 def _write_overlay_timeline_xml(
     source_timeline_xml: str,
     captions_xml: str,
@@ -66,24 +85,38 @@ def _write_overlay_timeline_xml(
     sequence_start = _fcpxml_time(timeline_sequence.get("tcStart", "0s"))
     video_clips = []
     for element in timeline_spine:
-        if element.tag != "asset-clip":
+        if element.tag not in _PRIMARY_STORYLINE_TAGS:
             continue
         start = _fcpxml_time(element.get("offset", "0s")) - sequence_start
         duration = _fcpxml_time(element.get("duration", "0s"))
-        video_clips.append((start, start + duration, element))
+        if duration <= 0:
+            continue
+        clip_local_start = _fcpxml_time(element.get("start", "0s"))
+        video_clips.append((start, start + duration, clip_local_start, element))
     if not video_clips:
         raise ValueError("The active timeline has no video clips to place captions over.")
+
+    # Stack new captions above any existing titles, captions, or video overlays so
+    # original timeline captions are preserved untouched.
+    target_lane = str(_max_existing_lane(timeline_spine) + 1)
+    timeline_end = video_clips[-1][1]
 
     titles_added = 0
     for title in captions_spine.findall("./title"):
         caption_start = _fcpxml_time(title.get("offset", "0s"))
         caption_duration = _fcpxml_time(title.get("duration", "0s"))
-        caption_end = caption_start + caption_duration
+        caption_end = min(caption_start + caption_duration, timeline_end)
         cursor = caption_start
+        if cursor >= timeline_end:
+            continue
 
         while cursor < caption_end:
             target = next(
-                ((start, end, clip) for start, end, clip in video_clips if start <= cursor < end),
+                (
+                    (start, end, local_start, clip)
+                    for start, end, local_start, clip in video_clips
+                    if start <= cursor < end
+                ),
                 None,
             )
             if target is None:
@@ -91,12 +124,12 @@ def _write_overlay_timeline_xml(
                     f"Caption at {float(cursor):.2f}s falls outside the active timeline's video clips."
                 )
 
-            clip_start, clip_end, clip = target
+            clip_start, clip_end, clip_local_start, clip = target
             piece_end = min(caption_end, clip_end)
             overlay = copy.deepcopy(title)
             overlay.set("ref", effect_id)
-            overlay.set("lane", "1")
-            overlay.set("offset", _format_fcpxml_time(cursor - clip_start))
+            overlay.set("lane", target_lane)
+            overlay.set("offset", _format_fcpxml_time(clip_local_start + (cursor - clip_start)))
             overlay.set("duration", _format_fcpxml_time(piece_end - cursor))
             clip.append(overlay)
             titles_added += 1

@@ -8,7 +8,7 @@ import os
 import re
 import zipfile
 
-from core.styles import STYLES
+from core.styles import STYLES, get_animation_preset
 
 TEMPLATES = {
     "Hormozi Viral": {
@@ -21,6 +21,7 @@ TEMPLATES = {
         "outline": {"thickness": 0.026, "color": (0.0, 0.0, 0.0, 1.0)},
         "shadow": {"offset": (0.007, -0.007), "softness": 2, "alpha": 0.95},
         "animated": True,
+        "animation": "pop_bounce",
     },
     "TikTok Bounce": {
         "description": "High contrast white text with crisp black border and dynamic bounce entrance.",
@@ -32,6 +33,7 @@ TEMPLATES = {
         "outline": {"thickness": 0.022, "color": (0.0, 0.0, 0.0, 1.0)},
         "shadow": {"offset": (0.006, -0.006), "softness": 4, "alpha": 0.90},
         "animated": True,
+        "animation": "pop_bounce",
     },
     "MrBeast Highlighter": {
         "description": "Vibrant lime neon highlight text with heavy comic outline and hard drop shadow.",
@@ -43,6 +45,7 @@ TEMPLATES = {
         "outline": {"thickness": 0.030, "color": (0.0, 0.0, 0.0, 1.0)},
         "shadow": {"offset": (0.008, -0.008), "softness": 0, "alpha": 1.0},
         "animated": True,
+        "animation": "comic_slam",
     },
     "Cinematic Box": {
         "description": "Clean modern sans-serif typography inside an elegant semi-transparent rounded dark box.",
@@ -59,6 +62,7 @@ TEMPLATES = {
         },
         "shadow": {"offset": (0.003, -0.004), "softness": 6, "alpha": 0.60},
         "animated": True,
+        "animation": "slide_up",
     },
     "Cyber Neon": {
         "description": "Futuristic electric cyan text with multi-layer glowing outline and magenta atmospheric back glow.",
@@ -70,6 +74,7 @@ TEMPLATES = {
         "outline": {"thickness": 0.014, "color": (0.0, 0.65, 1.0, 0.9), "softness": 12},
         "ambient_glow": {"thickness": 0.035, "color": (0.85, 0.0, 0.85, 0.55), "softness": 28},
         "animated": True,
+        "animation": "neon_pulse",
     },
     "Clean Minimalist": {
         "description": "Distraction-free, crisp white subtitle with gentle diffused shadow for corporate & documentary.",
@@ -81,6 +86,7 @@ TEMPLATES = {
         "outline": {"thickness": 0.005, "color": (0.0, 0.0, 0.0, 0.50)},
         "shadow": {"offset": (0.0, -0.004), "softness": 8, "alpha": 0.75},
         "animated": True,
+        "animation": "soft_rise",
     },
     "Retro Comic Pop": {
         "description": "Retro comic style with warm gold text, black border, and extruded red 3D drop shadow.",
@@ -92,6 +98,7 @@ TEMPLATES = {
         "outline": {"thickness": 0.024, "color": (0.0, 0.0, 0.0, 1.0)},
         "extrusion": {"offset": (0.012, -0.012), "color": (0.92, 0.15, 0.15, 1.0), "thickness": 0.024},
         "animated": True,
+        "animation": "comic_slam",
     },
     "Split Tone": {
         "description": "Two-tone gradient caption with vibrant yellow top, white base, and bold contrast outline.",
@@ -103,12 +110,138 @@ TEMPLATES = {
         "outline": {"thickness": 0.022, "color": (0.0, 0.0, 0.0, 1.0)},
         "shadow": {"offset": (0.006, -0.006), "softness": 2, "alpha": 0.90},
         "animated": True,
+        "animation": "slide_pop",
     },
 }
 
 for style_name, style in STYLES.items():
     if style_name not in TEMPLATES and "template_config" in style:
         TEMPLATES[style_name] = style["template_config"]
+
+
+def _format_bezier_spline(name: str, color: tuple[int, int, int], points: list[tuple[int, float]], smooth: bool = False) -> str:
+    """Format a Fusion BezierSpline block for a list of (frame, value) keyframes."""
+    r, g, b = color
+    lines = []
+    last_idx = len(points) - 1
+    for idx, (frame, value) in enumerate(points):
+        if smooth and len(points) >= 2:
+            parts = [f"{value:.6g}"]
+            if idx > 0:
+                prev_f, _ = points[idx - 1]
+                lh_x = -max(0.5, (frame - prev_f) * 0.45)
+                parts.append(f"LH = {{ {lh_x:.4g}, 0 }}")
+            if idx < last_idx:
+                next_f, next_v = points[idx + 1]
+                rh_x = max(0.5, (next_f - frame) * 0.35)
+                rh_y = (next_v - value) * 0.75
+                parts.append(f"RH = {{ {rh_x:.4g}, {rh_y:.6g} }}")
+            entry = ", ".join(parts)
+        else:
+            entry = f"{value:.6g}, Flags = {{ Linear = true }}"
+        comma = "," if idx < last_idx else ""
+        lines.append(f"\t\t\t\t[{frame}] = {{ {entry} }}{comma}")
+    keyframes_block = "\n".join(lines)
+    return (
+        f"\t\t{name} = BezierSpline {{\n"
+        f"\t\t\tSplineColor = {{ Red = {r}, Green = {g}, Blue = {b} }},\n"
+        f"\t\t\tKeyFrames = {{\n"
+        f"{keyframes_block}\n"
+        f"\t\t\t}}\n"
+        f"\t\t}}"
+    )
+
+
+def _build_fusion_animation(config: dict, center_y: float):
+    """Build Transform, FadeMerge, KeyStretcher inputs and root spline modifiers."""
+    preset = get_animation_preset(config.get("animation", "pop_bounce"))
+    smooth = bool(preset.get("smooth", False))
+    base_frames = int(preset.get("base_frames", 10))
+    stretch_start = base_frames + 1
+
+    transform_inputs = [
+        '\t\t\t\t\t\tInput = Input {\n\t\t\t\t\t\t\tSourceOp = "Template",\n\t\t\t\t\t\t\tSource = "Output",\n\t\t\t\t\t\t},',
+        f'\t\t\t\t\t\tPivot = Input {{ Value = {{ 0.5, {center_y} }}, }},',
+    ]
+    modifiers = []
+
+    offset_points = preset.get("offset")
+    if offset_points:
+        has_x = any(dx != 0.0 for _, dx, _ in offset_points)
+        has_y = any(dy != 0.0 for _, _, dy in offset_points)
+        if has_x or has_y:
+            transform_inputs.append(
+                '\t\t\t\t\t\tCenter = Input {\n\t\t\t\t\t\t\tSourceOp = "AnimCenterPath",\n\t\t\t\t\t\t\tSource = "Value",\n\t\t\t\t\t\t},'
+            )
+            xy_inputs = []
+            if has_x:
+                xy_inputs.append('\t\t\t\tX = Input {\n\t\t\t\t\tSourceOp = "AnimCenterX",\n\t\t\t\t\tSource = "Value",\n\t\t\t\t},')
+                modifiers.append(
+                    _format_bezier_spline(
+                        "AnimCenterX",
+                        (255, 80, 80),
+                        [(f, 0.5 + dx) for f, dx, _ in offset_points],
+                        smooth=smooth,
+                    )
+                )
+            else:
+                xy_inputs.append('\t\t\t\tX = Input { Value = 0.5, },')
+
+            if has_y:
+                xy_inputs.append('\t\t\t\tY = Input {\n\t\t\t\t\tSourceOp = "AnimCenterY",\n\t\t\t\t\tSource = "Value",\n\t\t\t\t},')
+                modifiers.append(
+                    _format_bezier_spline(
+                        "AnimCenterY",
+                        (80, 220, 120),
+                        [(f, 0.5 + dy) for f, _, dy in offset_points],
+                        smooth=smooth,
+                    )
+                )
+            else:
+                xy_inputs.append('\t\t\t\tY = Input { Value = 0.5, },')
+
+            xy_inputs_str = "\n".join(xy_inputs)
+            modifiers.append(
+                "\t\tAnimCenterPath = XYPath {\n"
+                "\t\t\tShowKeyPoints = false,\n"
+                '\t\t\tDrawMode = "ModifyOnly",\n'
+                "\t\t\tCtrlWZoom = false,\n"
+                "\t\t\tInputs = {\n"
+                f"{xy_inputs_str}\n"
+                "\t\t\t}\n"
+                "\t\t}"
+            )
+
+    scale_points = preset.get("scale")
+    if scale_points:
+        transform_inputs.append(
+            '\t\t\t\t\t\tSize = Input {\n\t\t\t\t\t\t\tSourceOp = "AnimSizeSpline",\n\t\t\t\t\t\t\tSource = "Value",\n\t\t\t\t\t\t},'
+        )
+        modifiers.append(
+            _format_bezier_spline("AnimSizeSpline", (255, 200, 0), scale_points, smooth=smooth)
+        )
+
+    rotation_points = preset.get("rotation")
+    if rotation_points:
+        transform_inputs.append(
+            '\t\t\t\t\t\tAngle = Input {\n\t\t\t\t\t\t\tSourceOp = "AnimAngleSpline",\n\t\t\t\t\t\t\tSource = "Value",\n\t\t\t\t\t\t},'
+        )
+        modifiers.append(
+            _format_bezier_spline("AnimAngleSpline", (120, 170, 255), rotation_points, smooth=smooth)
+        )
+
+    opacity_points = list(preset.get("opacity", [(0, 1.0)]))
+    outro_opacity = preset.get("outro_opacity")
+    if outro_opacity:
+        opacity_points.extend(outro_opacity)
+        stretch_end = 114
+    else:
+        stretch_end = 119
+    modifiers.append(
+        _format_bezier_spline("AnimOpacitySpline", (200, 120, 255), opacity_points, smooth=smooth)
+    )
+
+    return "\n".join(transform_inputs), ",\n".join(modifiers), stretch_start, stretch_end
 
 
 def generate_setting_file(name, config):
@@ -279,9 +412,10 @@ def generate_setting_file(name, config):
 
     inputs_str = "\n".join(inputs_lua)
 
-    # If animated, wrap in a GroupOperator with KeyStretcher so the intro bounce plays snappily
+    # If animated, wrap in a GroupOperator with Transform, FadeMerge, and KeyStretcher
     if animated:
         safe_tool_id = re.sub(r"[^A-Za-z0-9_]", "", name)
+        transform_inputs, modifiers_str, stretch_start, stretch_end = _build_fusion_animation(config, center_y)
         content = f"""{{
 	Tools = ordered() {{
 		{safe_tool_id} = GroupOperator {{
@@ -345,42 +479,58 @@ def generate_setting_file(name, config):
 					}},
 					ViewInfo = OperatorInfo {{ Pos = {{ 10, 10 }} }},
 				}},
-				PopTransform = Transform {{
+				AnimTransform = Transform {{
 					CtrlWZoom = false,
 					Inputs = {{
-						Input = Input {{
-							SourceOp = "Template",
-							Source = "Output",
-						}},
-						Size = Input {{
-							SourceOp = "PopSizeSpline",
-							Source = "Value",
-						}},
+{transform_inputs}
 					}},
 					ViewInfo = OperatorInfo {{ Pos = {{ 120, 10 }} }},
+				}},
+				TransparentBG = Background {{
+					CtrlWZoom = false,
+					Inputs = {{
+						Width = Input {{ Value = 1920, }},
+						Height = Input {{ Value = 1080, }},
+						UseFrameFormatSettings = Input {{ Value = 1, }},
+						["Gamut.SLogVersion"] = Input {{ Value = FuID {{ "SLog2" }}, }},
+						TopLeftAlpha = Input {{ Value = 0, }},
+					}},
+					ViewInfo = OperatorInfo {{ Pos = {{ 120, 90 }} }},
+				}},
+				FadeMerge = Merge {{
+					CtrlWZoom = false,
+					Inputs = {{
+						Background = Input {{
+							SourceOp = "TransparentBG",
+							Source = "Output",
+						}},
+						Foreground = Input {{
+							SourceOp = "AnimTransform",
+							Source = "Output",
+						}},
+						Blend = Input {{
+							SourceOp = "AnimOpacitySpline",
+							Source = "Value",
+						}},
+						PerformDepthMerge = Input {{ Value = 0, }},
+					}},
+					ViewInfo = OperatorInfo {{ Pos = {{ 230, 10 }} }},
 				}},
 				KeyframeStretcher1 = KeyStretcher {{
 					Inputs = {{
 						Keyframes = Input {{
-							SourceOp = "PopTransform",
+							SourceOp = "FadeMerge",
 							Source = "Output",
 						}},
 						SourceEnd = Input {{ Value = 120, }},
-						StretchStart = Input {{ Value = 10, }},
-						StretchEnd = Input {{ Value = 115, }},
+						StretchStart = Input {{ Value = {stretch_start}, }},
+						StretchEnd = Input {{ Value = {stretch_end}, }},
 					}},
-					ViewInfo = OperatorInfo {{ Pos = {{ 230, 10 }} }},
+					ViewInfo = OperatorInfo {{ Pos = {{ 340, 10 }} }},
 				}}
 			}},
 		}},
-		PopSizeSpline = BezierSpline {{
-			SplineColor = {{ Red = 255, Green = 200, Blue = 0 }},
-			KeyFrames = {{
-				[0] = {{ 0.82, Flags = {{ Linear = true }} }},
-				[4] = {{ 1.08, Flags = {{ Linear = true }} }},
-				[7] = {{ 1.00, Flags = {{ Linear = true }} }}
-			}}
-		}}
+{modifiers_str}
 	}},
 	ActiveTool = "{safe_tool_id}"
 }}

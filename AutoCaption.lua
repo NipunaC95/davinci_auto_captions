@@ -217,7 +217,8 @@ local function style_preview_html(style)
     local background = html_escape(style.background or "#18181D")
     local name = html_escape(style.name)
     if style.animated then
-        name = name .. " [ANIMATED POP]"
+        local anim_tag = html_escape(string.upper(style.animation_label or "ANIMATED"))
+        name = name .. " [" .. anim_tag .. "]"
     end
     local sample
     if style.kind == "gradient" then

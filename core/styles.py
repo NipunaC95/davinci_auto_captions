@@ -2,6 +2,82 @@
 Caption style presets and metadata for DaVinci Resolve.
 """
 
+ANIMATION_PRESETS = {
+    "pop_bounce": {
+        "label": "Pop Bounce",
+        "base_frames": 10,
+        "scale": [(0, 0.55), (4, 1.16), (7, 0.97), (10, 1.0)],
+        "opacity": [(0, 0.0), (2, 1.0)],
+    },
+    "comic_slam": {
+        "label": "Comic Slam",
+        "base_frames": 10,
+        "scale": [(0, 0.45), (4, 1.18), (7, 0.96), (10, 1.0)],
+        "rotation": [(0, -7.0), (4, 2.5), (7, -1.0), (10, 0.0)],
+        "opacity": [(0, 0.0), (2, 1.0)],
+    },
+    "neon_pulse": {
+        "label": "Neon Flicker",
+        "base_frames": 8,
+        "scale": [(0, 0.84), (4, 1.06), (8, 1.0)],
+        "opacity": [(0, 0.0), (2, 0.95), (4, 0.35), (6, 1.0)],
+    },
+    "slide_up": {
+        "label": "Slide & Fade",
+        "base_frames": 9,
+        "scale": [(0, 0.94), (9, 1.0)],
+        "offset": [(0, 0.0, -0.045), (9, 0.0, 0.0)],
+        "opacity": [(0, 0.0), (7, 1.0)],
+        "outro_opacity": [(115, 1.0), (120, 0.0)],
+        "smooth": True,
+    },
+    "soft_rise": {
+        "label": "Soft Rise",
+        "base_frames": 9,
+        "scale": [(0, 0.96), (9, 1.0)],
+        "offset": [(0, 0.0, -0.025), (9, 0.0, 0.0)],
+        "opacity": [(0, 0.0), (8, 1.0)],
+        "outro_opacity": [(115, 1.0), (120, 0.0)],
+        "smooth": True,
+    },
+    "flash_snap": {
+        "label": "Flash Snap",
+        "base_frames": 8,
+        "scale": [(0, 1.35), (4, 0.95), (8, 1.0)],
+        "opacity": [(0, 0.15), (3, 1.0)],
+    },
+    "slide_pop": {
+        "label": "Slide Pop",
+        "base_frames": 8,
+        "scale": [(0, 0.72), (4, 1.10), (8, 1.0)],
+        "offset": [(0, -0.045, -0.015), (4, 0.006, 0.002), (8, 0.0, 0.0)],
+        "opacity": [(0, 0.0), (3, 1.0)],
+    },
+    "drop_bounce": {
+        "label": "Drop Bounce",
+        "base_frames": 8,
+        "scale": [(0, 0.70), (4, 1.12), (8, 1.0)],
+        "offset": [(0, 0.0, 0.045), (4, 0.0, -0.008), (8, 0.0, 0.0)],
+        "opacity": [(0, 0.0), (3, 1.0)],
+    },
+}
+
+_KIND_TO_ANIMATION = {
+    "pop": "pop_bounce",
+    "comic": "comic_slam",
+    "neon": "neon_pulse",
+    "box": "slide_up",
+    "clean": "soft_rise",
+    "outline": "flash_snap",
+    "gradient": "slide_pop",
+    "shadow": "drop_bounce",
+}
+
+
+def get_animation_preset(name: str) -> dict:
+    return ANIMATION_PRESETS.get(name, ANIMATION_PRESETS["pop_bounce"])
+
+
 STYLES = {
     "Hormozi Viral": {
         "id": "HormoziViral",
@@ -15,6 +91,8 @@ STYLES = {
         "stroke_hex": "#000000",
         "stroke_width": 4,
         "animated": True,
+        "animation": "pop_bounce",
+        "animation_label": ANIMATION_PRESETS["pop_bounce"]["label"],
         "default_chunk": "short",  # 2-3 words
         "default_case": "UPPERCASE",
         "template_file": "Hormozi Viral.setting",
@@ -31,6 +109,8 @@ STYLES = {
         "stroke_hex": "#000000",
         "stroke_width": 3,
         "animated": True,
+        "animation": "pop_bounce",
+        "animation_label": ANIMATION_PRESETS["pop_bounce"]["label"],
         "default_chunk": "short",
         "default_case": "UPPERCASE",
         "template_file": "TikTok Bounce.setting",
@@ -47,6 +127,8 @@ STYLES = {
         "stroke_hex": "#000000",
         "stroke_width": 4,
         "animated": True,
+        "animation": "comic_slam",
+        "animation_label": ANIMATION_PRESETS["comic_slam"]["label"],
         "default_chunk": "short",
         "default_case": "UPPERCASE",
         "template_file": "MrBeast Highlighter.setting",
@@ -64,6 +146,8 @@ STYLES = {
         "stroke_hex": None,
         "stroke_width": 0,
         "animated": True,
+        "animation": "slide_up",
+        "animation_label": ANIMATION_PRESETS["slide_up"]["label"],
         "box_hex": "#101014",
         "box_opacity": 0.72,
         "default_chunk": "balanced",  # 4-6 words
@@ -82,6 +166,8 @@ STYLES = {
         "stroke_hex": "#0066FF",
         "stroke_width": 2,
         "animated": True,
+        "animation": "neon_pulse",
+        "animation_label": ANIMATION_PRESETS["neon_pulse"]["label"],
         "default_chunk": "short",
         "default_case": "UPPERCASE",
         "template_file": "Cyber Neon.setting",
@@ -98,6 +184,8 @@ STYLES = {
         "stroke_hex": "#000000",
         "stroke_width": 1,
         "animated": True,
+        "animation": "soft_rise",
+        "animation_label": ANIMATION_PRESETS["soft_rise"]["label"],
         "default_chunk": "balanced",
         "default_case": "Original",
         "template_file": "Clean Minimalist.setting",
@@ -114,6 +202,8 @@ STYLES = {
         "stroke_hex": "#000000",
         "stroke_width": 4,
         "animated": True,
+        "animation": "comic_slam",
+        "animation_label": ANIMATION_PRESETS["comic_slam"]["label"],
         "default_chunk": "1_word",
         "default_case": "UPPERCASE",
         "template_file": "Retro Comic Pop.setting",
@@ -130,6 +220,8 @@ STYLES = {
         "stroke_hex": "#000000",
         "stroke_width": 3,
         "animated": True,
+        "animation": "slide_pop",
+        "animation_label": ANIMATION_PRESETS["slide_pop"]["label"],
         "default_chunk": "short",
         "default_case": "UPPERCASE",
         "template_file": "Split Tone.setting",
@@ -182,6 +274,9 @@ def _make_variant(name: str, family: str, kind: str, font: str, description: str
     accent = _hex_rgba(accent_hex)
     black = _hex_rgba("#000000")
 
+    animation_name = _KIND_TO_ANIMATION.get(kind, "pop_bounce")
+    animation_label = ANIMATION_PRESETS[animation_name]["label"]
+
     template = {
         "description": description,
         "font": font,
@@ -190,6 +285,7 @@ def _make_variant(name: str, family: str, kind: str, font: str, description: str
         "center_y": 0.22 if kind not in {"box", "clean"} else 0.16,
         "fill": fill,
         "animated": True,
+        "animation": animation_name,
     }
 
     if kind == "neon":
@@ -281,6 +377,8 @@ def _make_variant(name: str, family: str, kind: str, font: str, description: str
         "stroke_rgb": _hex_rgba(stroke_hex)[:3],
         "stroke_width": stroke_width,
         "animated": True,
+        "animation": animation_name,
+        "animation_label": animation_label,
         "default_chunk": "short",
         "default_case": "UPPERCASE",
         "template_file": f"{name}.setting",

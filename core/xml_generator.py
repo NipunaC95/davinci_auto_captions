@@ -6,7 +6,54 @@ directly into DaVinci Resolve Free v21 timelines.
 import os
 from typing import List, Optional
 from core.transcriber import CaptionSegment
-from core.styles import get_style
+from core.styles import get_style, get_animation_preset
+
+
+def _scale_keyframes(points, duration_frames: int, base_frames: int):
+    """Map preset keyframes onto [0, duration_frames - 1] with strictly increasing times."""
+    if not points or duration_frames <= 1:
+        return []
+    max_frame = duration_frames - 1
+    if max_frame >= base_frames:
+        return [(frame, value) for frame, value in points]
+
+    mapped = []
+    last_frame = -1
+    for idx, (frame, value) in enumerate(points):
+        if idx == len(points) - 1:
+            scaled = max_frame
+        else:
+            scaled = int(round(frame * max_frame / max(1, base_frames)))
+            scaled = min(scaled, max_frame - 1)
+        if scaled <= last_frame:
+            if idx == len(points) - 1 and mapped:
+                mapped[-1] = (max_frame, value)
+            continue
+        mapped.append((scaled, value))
+        last_frame = scaled
+    return mapped
+
+
+def _build_keyframe_xml(param_name: str, keyframes, fps: float, format_value, interp: str, curve: str = "") -> list[str]:
+    if not keyframes:
+        return []
+    curve_attr = f' curve="{curve}"' if curve else ""
+    lines = [
+        f'                <param name="{param_name}">',
+        '                  <keyframeAnimation>',
+    ]
+    for idx, (frame, val) in enumerate(keyframes):
+        time_str = "0s" if frame == 0 else frames_to_fcpxml_time(frame, fps)
+        val_str = format_value(val)
+        if idx == 0:
+            lines.append(f'                    <keyframe time="{time_str}" value="{val_str}"/>')
+        else:
+            lines.append(f'                    <keyframe time="{time_str}" value="{val_str}" interp="{interp}"{curve_attr}/>')
+    lines.extend([
+        '                  </keyframeAnimation>',
+        '                </param>',
+    ])
+    return lines
 
 def seconds_to_frames(seconds: float, fps: float) -> int:
     return int(round(seconds * fps))
@@ -40,6 +87,7 @@ def generate_fcpxml(
     stroke_rgb = style.get("stroke_rgb", (0.0, 0.0, 0.0))
     stroke_color_str = f"{stroke_rgb[0]} {stroke_rgb[1]} {stroke_rgb[2]} 1"
     animated = style.get("animated", False)
+    preset = get_animation_preset(style.get("animation", "pop_bounce"))
 
     color_str = f"{color_rgb[0]} {color_rgb[1]} {color_rgb[2]} 1"
     frame_dur = frames_to_fcpxml_time(1, fps)
@@ -92,28 +140,83 @@ def generate_fcpxml(
             f'              </text-style-def>',
         ])
         if animated and duration_frames > 1:
-            lines.extend([
-                '              <adjust-transform>',
-                '                <param name="scale">',
-            ])
-            if duration_frames >= 4:
-                peak_frame = max(1, min(3, duration_frames - 2))
-                settle_frame = min(6, duration_frames - 1)
-                lines.extend([
-                    '                  <keyframe time="0s" value="0.82 0.82"/>',
-                    f'                  <keyframe time="{frames_to_fcpxml_time(peak_frame, fps)}" value="1.08 1.08" curve="ease-out"/>',
-                    f'                  <keyframe time="{frames_to_fcpxml_time(settle_frame, fps)}" value="1 1" curve="ease-out"/>',
-                ])
-            else:
-                settle_frame = duration_frames - 1
-                lines.extend([
-                    '                  <keyframe time="0s" value="0.82 0.82"/>',
-                    f'                  <keyframe time="{frames_to_fcpxml_time(settle_frame, fps)}" value="1 1" curve="ease-out"/>',
-                ])
-            lines.extend([
-                '                </param>',
-                '              </adjust-transform>',
-            ])
+            base_frames = int(preset.get("base_frames", 10))
+            interp = "easeOut"
+            curve = "smooth" if preset.get("smooth") else ""
+
+            transform_params = []
+            offset_points = preset.get("offset")
+            if offset_points:
+                pos_kfs = _scale_keyframes(
+                    [(f, (dx * 100.0, dy * 100.0)) for f, dx, dy in offset_points],
+                    duration_frames,
+                    base_frames,
+                )
+                transform_params.extend(
+                    _build_keyframe_xml(
+                        "position",
+                        pos_kfs,
+                        fps,
+                        lambda v: f"{v[0]:g} {v[1]:g}",
+                        interp,
+                        curve,
+                    )
+                )
+
+            scale_points = preset.get("scale")
+            if scale_points:
+                scale_kfs = _scale_keyframes(scale_points, duration_frames, base_frames)
+                transform_params.extend(
+                    _build_keyframe_xml(
+                        "scale",
+                        scale_kfs,
+                        fps,
+                        lambda v: f"{v:g} {v:g}",
+                        interp,
+                        curve,
+                    )
+                )
+
+            rotation_points = preset.get("rotation")
+            if rotation_points:
+                rot_kfs = _scale_keyframes(rotation_points, duration_frames, base_frames)
+                transform_params.extend(
+                    _build_keyframe_xml(
+                        "rotation",
+                        rot_kfs,
+                        fps,
+                        lambda v: f"{v:g}",
+                        interp,
+                        curve,
+                    )
+                )
+
+            if transform_params:
+                lines.append('              <adjust-transform position="0 0" scale="1 1" rotation="0">')
+                lines.extend(transform_params)
+                lines.append('              </adjust-transform>')
+
+            opacity_points = preset.get("opacity")
+            if opacity_points:
+                opacity_kfs = _scale_keyframes(opacity_points, duration_frames, base_frames)
+                outro_opacity = preset.get("outro_opacity")
+                if outro_opacity and duration_frames >= base_frames + 8:
+                    fade_start = duration_frames - 5
+                    fade_end = duration_frames - 1
+                    if not opacity_kfs or opacity_kfs[-1][0] < fade_start:
+                        opacity_kfs.extend([(fade_start, 1.0), (fade_end, 0.0)])
+                blend_params = _build_keyframe_xml(
+                    "amount",
+                    opacity_kfs,
+                    fps,
+                    lambda v: f"{v:g}",
+                    interp,
+                    curve,
+                )
+                if blend_params:
+                    lines.append('              <adjust-blend amount="1">')
+                    lines.extend(blend_params)
+                    lines.append('              </adjust-blend>')
         lines.append('            </title>')
         last_end_frame = start_frame + duration_frames
 
