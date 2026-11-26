@@ -203,17 +203,17 @@ class AutoCaptionApp(tk.Tk):
                    command=self._install_templates_action).pack(fill="x")
 
         # Right Column: Captions Preview Table & Export Actions
-        right_card = ttk.Frame(main_paned, style="Card.TFrame", padding=15)
-        main_paned.add(right_card, weight=2)
+        self.right_card = ttk.Frame(self.main_paned, style="Card.TFrame", padding=15)
+        self.main_paned.add(self.right_card, weight=2)
 
-        right_header = ttk.Frame(right_card, style="Card.TFrame")
+        right_header = ttk.Frame(self.right_card, style="Card.TFrame")
         right_header.pack(fill="x", pady=(0, 10))
         ttk.Label(right_header, text="Generated Captions Preview", style="Section.TLabel").pack(side="left")
         self.count_label = ttk.Label(right_header, text="0 clips", style="Muted.TLabel")
         self.count_label.pack(side="right")
 
         # Captions Treeview Table
-        tree_frame = ttk.Frame(right_card, style="Card.TFrame")
+        tree_frame = ttk.Frame(self.right_card, style="Card.TFrame")
         tree_frame.pack(fill="both", expand=True, pady=(0, 10))
 
         columns = ("#", "Start", "End", "Duration", "Caption Text")
