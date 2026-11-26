@@ -181,7 +181,7 @@ def _make_variant(name: str, family: str, kind: str, font: str, description: str
         "size": 0.078 if kind in {"pop", "comic", "outline", "gradient", "shadow"} else 0.058,
         "center_y": 0.22 if kind not in {"box", "clean"} else 0.16,
         "fill": fill,
-        "animated": kind not in {"box", "clean"},
+        "animated": True,
     }
 
     if kind == "neon":
