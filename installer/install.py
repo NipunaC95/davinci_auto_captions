@@ -71,12 +71,13 @@ def install_all():
     script_entry = os.path.join(base_dir, "AutoCaption.lua")
     target_script = os.path.join(script_folder, "AutoCaption.lua")
     lua_styles = ",\n".join(
-        "    { name = %s, description = %s, fill = %s, stroke = %s, kind = %s }" % (
+        "    { name = %s, description = %s, fill = %s, stroke = %s, kind = %s, background = %s }" % (
             _lua_quote(style["name"]),
             _lua_quote(style["description"]),
             _lua_quote(style.get("color_hex", "#FFFFFF")),
             _lua_quote(style.get("stroke_hex") or "#000000"),
             _lua_quote(style.get("preview_kind", "pop")),
+            _lua_quote(style.get("preview_bg", "#18181D")),
         )
         for style in STYLES.values()
     )
@@ -126,7 +127,7 @@ def main():
         print("\n" + "=" * 65)
         print(" HOW TO USE IN DAVINCI RESOLVE:")
         print(" 1. In DaVinci Resolve, go to Effects > Titles > Auto Captions")
-        print("    You will see all 8 drag-and-drop styles ready to use!")
+        print(f"    You will see {res['templates_count']} drag-and-drop styles ready to use!")
         print(" 2. To Auto-Transcribe & Generate Captions:")
         print("    Go to Workspace > Scripts > Utility > AutoCaption")
         print("    OR double-click 'AutoCaption.command' on your Mac.")
