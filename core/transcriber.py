@@ -95,7 +95,8 @@ class CaptionSegment:
 class CaptionTranscriber:
     def __init__(self, model_size: str = "base", language: Optional[str] = None, device: Optional[str] = None):
         self.model_size = model_size
-        self.language = language if language and language.lower() != "auto" else None
+        normalized_language = language.strip().lower() if language else ""
+        self.language = normalized_language if normalized_language and normalized_language != "auto" else None
         self.device = device or self._detect_device()
         self.ffmpeg_exe = get_ffmpeg_executable()
         self._model = None
@@ -115,6 +116,20 @@ class CaptionTranscriber:
         # Note: PyTorch on Apple Silicon MPS does not support float64 DTW alignments for Whisper word timestamps.
         # CPU is blazingly fast on Apple Silicon (400+ fps) and avoids DTW tensor crashes.
         return "cpu"
+
+    def _detect_english_or_sinhala(self, wav_path: str, whisper) -> str:
+        model = self._model
+        if model is None:
+            raise RuntimeError("Whisper model must be loaded before detecting language.")
+
+        audio = whisper.load_audio(wav_path)
+        audio = whisper.pad_or_trim(audio)
+        mel = whisper.log_mel_spectrogram(
+            audio,
+            n_mels=model.dims.n_mels,
+        ).to(self.device)
+        _, language_probs = model.detect_language(mel)
+        return max(("en", "si"), key=lambda code: language_probs.get(code, 0.0))
 
     def _load_model(self, progress_callback: Optional[Callable[[str, float], None]] = None):
         if self._model is None:
@@ -166,15 +181,24 @@ class CaptionTranscriber:
         try:
             self._load_model(progress_callback)
 
+            import whisper
+            language = self.language
+            if language is None:
+                if progress_callback:
+                    progress_callback("Detecting English or Sinhala...", 0.2)
+                language = self._detect_english_or_sinhala(wav_path, whisper)
+                language_name = "Sinhala" if language == "si" else "English"
+                if progress_callback:
+                    progress_callback(f"Detected language: {language_name}", 0.25)
+
             if progress_callback:
                 progress_callback("Transcribing speech with word timestamps...", 0.3)
 
             transcribe_kwargs = {
+                "language": language,
                 "word_timestamps": True,
                 "verbose": False,
             }
-            if self.language:
-                transcribe_kwargs["language"] = self.language
 
             result = self._model.transcribe(wav_path, **transcribe_kwargs)
 

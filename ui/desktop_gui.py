@@ -197,7 +197,7 @@ class AutoCaptionApp(tk.Tk):
 
         lang_frame = ttk.Frame(left_card, style="Card.TFrame")
         lang_frame.pack(fill="x", pady=(0, 20))
-        ttk.Label(lang_frame, text="Language:", style="Muted.TLabel").pack(side="left")
+        ttk.Label(lang_frame, text="Language (Auto: EN/SI):", style="Muted.TLabel").pack(side="left")
         lang_cb = ttk.Combobox(lang_frame, textvariable=self.selected_language, width=15, state="readonly",
                               values=["Auto", "en", "es", "fr", "de", "it", "pt", "ja", "zh", "hi", "si"])
         lang_cb.pack(side="right")

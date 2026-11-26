@@ -34,13 +34,19 @@ def main():
     parser.add_argument("--chunk", default="short", help="Chunking mode: 1_word, short, balanced, sentence")
     parser.add_argument("--casing", default="UPPERCASE", help="Casing: UPPERCASE, Title Case, Original")
     parser.add_argument("--model", default="base", help="Whisper model: tiny, base, small")
+    parser.add_argument(
+        "--language",
+        choices=("auto", "en", "si"),
+        default="auto",
+        help="Language: auto-detect English or Sinhala, or force en/si",
+    )
     parser.add_argument("--auto-import", action="store_true", help="Automatically import into active Resolve project")
 
     args = parser.parse_args()
 
     notify_user("Auto Caption", f"Transcribing '{os.path.basename(args.media)}' with {args.style} style...")
 
-    transcriber = CaptionTranscriber(model_size=args.model)
+    transcriber = CaptionTranscriber(model_size=args.model, language=args.language)
     segments = transcriber.transcribe(
         media_path=args.media,
         chunk_mode=args.chunk,
