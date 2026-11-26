@@ -40,7 +40,11 @@ def main():
     
     if is_inside_resolve:
         from ui.fusion_ui import run_fusion_ui
-        run_fusion_ui()
+        run_fusion_ui(
+            fusion_app=globals().get("fusion"),
+            scripting_module=globals().get("bmd"),
+            resolve_app=globals().get("resolve"),
+        )
     else:
         # Check if running outside venv
         if os.path.exists(venv_python) and sys.executable != venv_python:

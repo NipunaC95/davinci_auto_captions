@@ -9,11 +9,10 @@ import subprocess
 import tempfile
 import threading
 
-def run_fusion_ui():
-    # Resolve globals
-    fu = globals().get("fusion")
-    bmd = globals().get("bmd")
-    resolve = globals().get("resolve")
+def run_fusion_ui(fusion_app=None, scripting_module=None, resolve_app=None):
+    fu = fusion_app
+    bmd = scripting_module
+    resolve = resolve_app
 
     if not fu or not bmd or not resolve:
         print("[AutoCaption] Error: This script must be run inside DaVinci Resolve.")

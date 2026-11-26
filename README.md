@@ -50,7 +50,8 @@ A professional, high-performance auto-captioning plugin and drag-and-drop animat
 1. Open DaVinci Resolve.
 2. In the top menu, go to:
    **Workspace > Scripts > Utility > AutoCaption**
-3. The Auto Caption dialog will launch directly inside your Resolve session.
+3. The Auto Caption panel opens in Resolve. It reads the active timeline and refreshes the live timeline connection while open.
+4. If `AutoCaption` is not listed, install or update the scripts with `python installer/install.py`, then restart Resolve.
 
 ---
 
