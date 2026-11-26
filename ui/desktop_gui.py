@@ -36,9 +36,31 @@ class AutoCaptionApp(tk.Tk):
         self.status_text = tk.StringVar(value="Ready. Select a video or audio file to begin.")
         self.progress_value = tk.DoubleVar(value=0.0)
 
+        self.is_pinned = tk.BooleanVar(value=True)
+        self.attributes("-topmost", True)  # Float on top of DaVinci Resolve like an integrated panel
+        self.is_compact = False
+
         self._setup_styles()
         self._build_ui()
         self._check_resolve_connection()
+
+    def _toggle_pin(self):
+        pinned = self.is_pinned.get()
+        self.attributes("-topmost", pinned)
+        self.pin_btn.config(text="📌 Pinned (Floating Panel)" if pinned else "📍 Unpinned")
+
+    def _toggle_compact(self):
+        self.is_compact = not self.is_compact
+        if self.is_compact:
+            self.geometry("400x720")
+            self.main_paned.paneconfig(self.right_card, hide=True)
+            self.compact_btn.config(text="⇲ Expand Studio View")
+            self.title("Auto Caption — DaVinci Side Panel")
+        else:
+            self.geometry("960x720")
+            self.main_paned.paneconfig(self.right_card, hide=False)
+            self.compact_btn.config(text="⇱ Compact Side Panel")
+            self.title("Auto Caption Studio — DaVinci Resolve v21 (Free & Studio)")
 
     def _setup_styles(self):
         self.style = ttk.Style(self)
@@ -89,17 +111,30 @@ class AutoCaptionApp(tk.Tk):
         ttk.Label(title_box, text="⚡ Auto Caption Studio", style="Header.TLabel").pack(anchor="w")
         ttk.Label(title_box, text="DaVinci Resolve Free v21 Plugin & Drag-and-Drop Caption Generator", style="SubHeader.TLabel").pack(anchor="w")
 
-        self.badge_label = tk.Label(header_frame, text="Checking Resolve...", font=("Helvetica", 10, "bold"),
-                                    bg="#2A2A38", fg="#9E9EAF", padx=10, pady=4)
-        self.badge_label.pack(side="right")
+        controls_box = ttk.Frame(header_frame)
+        controls_box.pack(side="right")
+
+        self.pin_btn = tk.Checkbutton(
+            controls_box, text="📌 Float Panel", variable=self.is_pinned, command=self._toggle_pin,
+            bg="#2A2A38", fg="#F59E0B", selectcolor="#1E1E28", activebackground="#2A2A38",
+            activeforeground="#F59E0B", padx=6, pady=2, relief="flat", font=("Helvetica", 10, "bold")
+        )
+        self.pin_btn.pack(side="left", padx=4)
+
+        self.compact_btn = ttk.Button(controls_box, text="⇱ Compact Side Panel", style="Secondary.TButton", command=self._toggle_compact)
+        self.compact_btn.pack(side="left", padx=4)
+
+        self.badge_label = tk.Label(controls_box, text="Checking Resolve...", font=("Helvetica", 10, "bold"),
+                                    bg="#2A2A38", fg="#9E9EAF", padx=8, pady=4)
+        self.badge_label.pack(side="left", padx=4)
 
         # Main Layout: 2 Columns (Left Settings & Controls, Right Preview & Table)
-        main_paned = ttk.PanedWindow(self, orient="horizontal")
-        main_paned.pack(fill="both", expand=True, padx=20, pady=10)
+        self.main_paned = ttk.PanedWindow(self, orient="horizontal")
+        self.main_paned.pack(fill="both", expand=True, padx=20, pady=10)
 
         # Left Column: Configuration Card
-        left_card = ttk.Frame(main_paned, style="Card.TFrame", padding=15)
-        main_paned.add(left_card, weight=1)
+        left_card = ttk.Frame(self.main_paned, style="Card.TFrame", padding=15)
+        self.main_paned.add(left_card, weight=1)
 
         # 1. Media Input Section
         ttk.Label(left_card, text="1. Select Media File", style="Section.TLabel").pack(anchor="w", pady=(0, 6))
