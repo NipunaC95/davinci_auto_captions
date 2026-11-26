@@ -52,7 +52,7 @@ If `py` is not available, replace it with the full path to your Python executabl
 6. Click **🚀 Transcribe & Generate Captions**.
 7. Preview or edit any words in the interactive table.
 8. Click **🎬 Send to DaVinci Timeline** (or **💾 Export FCPXML** / **📄 Export SRT**).
-   - DaVinci Resolve will automatically import a timeline populated with your styled Text+ clips aligned to the audio!
+   - DaVinci Resolve creates and activates a new timeline with styled Text+ captions on a video track above the source footage. Your original timeline remains unchanged.
 
 ---
 
