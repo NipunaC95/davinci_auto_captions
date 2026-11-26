@@ -13,23 +13,52 @@ from dataclasses import dataclass, asdict
 from typing import List, Dict, Optional, Callable
 
 def get_ffmpeg_executable() -> str:
-    """Finds an available ffmpeg executable, checking imageio-ffmpeg first, then PATH."""
+    """Finds an available ffmpeg executable, ensuring 'ffmpeg' is accessible in PATH for Whisper."""
+    exe = None
     try:
         import imageio_ffmpeg
-        exe = imageio_ffmpeg.get_ffmpeg_exe()
-        if os.path.exists(exe) and os.access(exe, os.X_OK):
-            return exe
+        img_exe = imageio_ffmpeg.get_ffmpeg_exe()
+        if os.path.exists(img_exe) and os.access(img_exe, os.X_OK):
+            exe = img_exe
+            # Ensure a file literally named 'ffmpeg' exists in that directory
+            bin_dir = os.path.dirname(img_exe)
+            alias_ffmpeg = os.path.join(bin_dir, "ffmpeg")
+            if not os.path.exists(alias_ffmpeg):
+                try:
+                    os.symlink(img_exe, alias_ffmpeg)
+                except Exception:
+                    pass
     except Exception:
         pass
 
-    system_ffmpeg = shutil.which("ffmpeg")
-    if system_ffmpeg:
-        return system_ffmpeg
+    # Check venv/bin/ffmpeg
+    venv_dir = os.path.dirname(sys.executable)
+    venv_ffmpeg = os.path.join(venv_dir, "ffmpeg")
+    if os.path.exists(venv_ffmpeg) and os.access(venv_ffmpeg, os.X_OK):
+        if not exe:
+            exe = venv_ffmpeg
 
-    # Common macOS / Linux paths
-    for p in ["/opt/homebrew/bin/ffmpeg", "/usr/local/bin/ffmpeg", "/usr/bin/ffmpeg"]:
-        if os.path.exists(p) and os.access(p, os.X_OK):
-            return p
+    if not exe:
+        system_ffmpeg = shutil.which("ffmpeg")
+        if system_ffmpeg:
+            exe = system_ffmpeg
+
+    if not exe:
+        # Common macOS / Linux paths
+        for p in ["/opt/homebrew/bin/ffmpeg", "/usr/local/bin/ffmpeg", "/usr/bin/ffmpeg"]:
+            if os.path.exists(p) and os.access(p, os.X_OK):
+                exe = p
+                break
+
+    if exe:
+        # Prepend both directory containing exe and venv/bin to PATH so whisper's internal calls succeed
+        dirs_to_add = [os.path.dirname(exe), venv_dir]
+        curr_path = os.environ.get("PATH", "")
+        for d in dirs_to_add:
+            if d not in curr_path:
+                curr_path = f"{d}:{curr_path}"
+        os.environ["PATH"] = curr_path
+        return exe
 
     raise RuntimeError("FFmpeg executable not found! Please install ffmpeg or imageio-ffmpeg.")
 
@@ -76,10 +105,10 @@ class CaptionTranscriber:
             import torch
             if torch.cuda.is_available():
                 return "cuda"
-            elif hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
-                return "mps"
         except Exception:
             pass
+        # Note: PyTorch on Apple Silicon MPS does not support float64 DTW alignments for Whisper word timestamps.
+        # CPU is blazingly fast on Apple Silicon (400+ fps) and avoids DTW tensor crashes.
         return "cpu"
 
     def _load_model(self, progress_callback: Optional[Callable[[str, float], None]] = None):
