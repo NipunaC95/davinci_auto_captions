@@ -134,6 +134,7 @@ class AutoCaptionApp(tk.Tk):
 
         # Left Column: Configuration Card
         left_card = ttk.Frame(self.main_paned, style="Card.TFrame", padding=15)
+        self.left_card = left_card
         self.main_paned.add(left_card, weight=1)
 
         # 1. Media Input Section
@@ -267,6 +268,7 @@ class AutoCaptionApp(tk.Tk):
         self.status_lbl.pack(anchor="w")
 
     def _check_resolve_connection(self):
+        self.bridge.refresh_connection()
         connected = self.bridge.is_connected()
         running = self.bridge.is_running()
 
@@ -275,6 +277,25 @@ class AutoCaptionApp(tk.Tk):
             proj_name = proj.GetName() if proj else "Active"
             self.badge_label.config(text=f"🟢 Studio API: {proj_name}", bg="#064E3B", fg="#6EE7B7")
             self.import_btn.config(text="🎬 Send Directly to Resolve Timeline", state="normal")
+            if not hasattr(self, "detect_btn"):
+                self.detect_btn = ttk.Button(
+                    self.left_card,
+                    text="🎯 Fetch from Active Timeline (Studio)",
+                    style="Secondary.TButton",
+                    command=self._fetch_from_timeline,
+                )
+                self.detect_btn.pack(fill="x", pady=(0, 15))
+            if not self.input_file_path.get().strip():
+                info = self.bridge.get_timeline_info()
+                files = info.get("source_files", [])
+                if files:
+                    self.input_file_path.set(files[0])
+                    self.file_display_lbl.config(
+                        text=f"✓ Live Timeline: {os.path.basename(files[0])}",
+                        fg="#6EE7B7",
+                        bg="#064E3B",
+                        font=("Helvetica", 10, "bold"),
+                    )
         elif running:
             self.badge_label.config(text="🟢 DaVinci Resolve Free v21 Active", bg="#064E3B", fg="#6EE7B7")
             self.import_btn.config(text="⚡ Send to DaVinci Resolve", state="normal")
@@ -439,7 +460,7 @@ class AutoCaptionApp(tk.Tk):
         generate_fcpxml(
             segments=self.segments,
             output_path=xml_path,
-            fps=30.0,
+            fps=(self.bridge.get_timeline_info().get("fps", 30.0) if self.bridge.is_connected() else 30.0),
             style_name=style_name,
             timeline_name=f"Captions_{style_name}"
         )

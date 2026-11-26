@@ -7,6 +7,7 @@ import os
 import sys
 import argparse
 import subprocess
+import tempfile
 
 # Ensure project root is in sys.path
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

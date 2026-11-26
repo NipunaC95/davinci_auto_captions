@@ -30,8 +30,13 @@ def run_fusion_ui():
         return
 
     # Project directories
-    project_dir = "/Users/nipunachandimal/Documents/Development/auto_captions"
-    venv_py = os.path.join(project_dir, "venv", "bin", "python3")
+    project_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if sys.platform.startswith("win"):
+        venv_py = os.path.join(project_dir, "venv", "Scripts", "python.exe")
+    else:
+        venv_py = os.path.join(project_dir, "venv", "bin", "python3")
+    if not os.path.exists(venv_py):
+        venv_py = sys.executable
     quick_caption_cli = os.path.join(project_dir, "core", "quick_caption.py")
 
     # Detect current project and timeline
@@ -123,6 +128,7 @@ def run_fusion_ui():
 
         # Progress / Status Box
         ui.Label({ 'ID': 'StatusMsg', 'Text': '<span style="color:#E0E0E6;">Ready. Click Auto-Caption to transcribe timeline speech.</span>', 'Weight': 0 }),
+        ui.Timer({ 'ID': 'LiveTimelineTimer', 'Interval': 3000, 'SingleShot': False }),
 
         # Action Buttons
         ui.VGap(4),
@@ -178,6 +184,33 @@ def run_fusion_ui():
         if chosen:
             items['FileBox'].Text = str(chosen)
             items['TimelineStatus'].Text = f'<small style="color:#10B981;">● Selected file: {os.path.basename(str(chosen))}</small>'
+
+    def refresh_live_timeline(ev):
+        pm = resolve.GetProjectManager()
+        live_project = pm.GetCurrentProject() if pm else None
+        live_timeline = live_project.GetCurrentTimeline() if live_project else None
+        if not live_timeline:
+            items['TimelineStatus'].Text = '<small style="color:#9E9EAF;">● Resolve live connection ready - no timeline open</small>'
+            return
+
+        live_media = []
+        for t_type in ["video", "audio"]:
+            count = live_timeline.GetTrackCount(t_type)
+            for idx in range(1, count + 1):
+                for item in live_timeline.GetItemListInTrack(t_type, idx) or []:
+                    mp_item = item.GetMediaPoolItem()
+                    if mp_item:
+                        fp = mp_item.GetClipProperty().get("File Path", "")
+                        if fp and os.path.exists(fp) and fp not in live_media:
+                            live_media.append(fp)
+
+        status = f'<small style="color:#10B981;">● Live Timeline: {live_timeline.GetName()}'
+        status += f" ({len(live_media)} media clips detected)</small>"
+        items['TimelineStatus'].Text = status
+        if live_media:
+            current = items['FileBox'].Text.strip()
+            if not current or not os.path.exists(current):
+                items['FileBox'].Text = live_media[0]
 
     def on_studio_gui(ev):
         dispatcher.ExitLoop()
@@ -254,8 +287,13 @@ def run_fusion_ui():
     win.On['BrowseBtn'].Clicked = on_browse
     win.On['StudioGuiBtn'].Clicked = on_studio_gui
     win.On['ActionBtn'].Clicked = on_run_caption
+    win.On['LiveTimelineTimer'].Timer = refresh_live_timeline
 
     win.Show()
+    try:
+        items['LiveTimelineTimer'].Start()
+    except Exception:
+        pass
     dispatcher.RunLoop()
     win.Hide()
 

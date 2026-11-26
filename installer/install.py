@@ -33,6 +33,8 @@ def install_all():
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     templates_src = os.path.join(base_dir, "templates")
     drfx_src = os.path.join(base_dir, "dist", "AutoCaptions.drfx")
+    core_src = os.path.join(base_dir, "core")
+    ui_src = os.path.join(base_dir, "ui")
 
     # 1. Install .setting files to Templates/Edit/Titles/Auto Captions
     target_titles_dir = os.path.join(paths["templates_titles"], "Auto Captions")
@@ -61,6 +63,14 @@ def install_all():
         shutil.copy2(script_entry, target_script)
         installed_scripts.append(target_script)
 
+        # Copy runtime modules next to the installed entry script so it works
+        # independently of the original repository checkout.
+        for src_dir, dirname in ((core_src, "core"), (ui_src, "ui")):
+            dst_dir = os.path.join(script_folder, dirname)
+            if os.path.isdir(dst_dir):
+                shutil.rmtree(dst_dir)
+            shutil.copytree(src_dir, dst_dir)
+
     return {
         "success": True,
         "templates_count": len(installed_templates),
@@ -70,7 +80,7 @@ def install_all():
 
 def main():
     print("=" * 65)
-    print(" ⚡ Auto Caption Plugin Installer — DaVinci Resolve Free v21")
+    print(" [!] Auto Caption Plugin Installer - DaVinci Resolve Free v21")
     print("=" * 65)
 
     res = install_all()

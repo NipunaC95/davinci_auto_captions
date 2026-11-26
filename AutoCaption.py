@@ -30,7 +30,10 @@ if PROJECT_DIR not in sys.path:
     sys.path.insert(0, PROJECT_DIR)
 
 def main():
-    venv_python = os.path.join(PROJECT_DIR, "venv", "bin", "python3")
+    if sys.platform.startswith("win"):
+        venv_python = os.path.join(PROJECT_DIR, "venv", "Scripts", "python.exe")
+    else:
+        venv_python = os.path.join(PROJECT_DIR, "venv", "bin", "python3")
 
     # If running inside DaVinci Resolve
     is_inside_resolve = "resolve" in globals() or "fusion" in globals() or "bmd" in globals()

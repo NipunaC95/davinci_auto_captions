@@ -44,13 +44,28 @@ def get_resolve_instance():
     elif sys.platform.startswith("linux"):
         lib_path = "/opt/resolve/Developer/Scripting/Modules/"
 
-    if os.path.exists(lib_path) and lib_path not in sys.path:
-        sys.path.insert(0, lib_path)
-        try:
-            import DaVinciResolveScript as bmd
-            return bmd.scriptapp("Resolve")
-        except Exception:
-            pass
+    candidates = [lib_path]
+    resolve_script_dll = os.getenv("RESOLVE_SCRIPT_LIB", "")
+    candidates.append(resolve_script_dll)
+    if sys.platform.startswith("win"):
+        candidates.extend([
+            r"H:\Program Files\Blackmagic Design\DaVinci Resolve\Support\Developer\Scripting\Modules",
+            r"H:\Program Files\Blackmagic Design\DaVinci Resolve\Developer\Scripting\Modules",
+            r"C:\Program Files\Blackmagic Design\DaVinci Resolve\Support\Developer\Scripting\Modules",
+            r"C:\Program Files\Blackmagic Design\DaVinci Resolve\Developer\Scripting\Modules",
+        ])
+
+    for candidate in candidates:
+        if candidate and os.path.isdir(candidate) and candidate not in sys.path:
+            sys.path.insert(0, candidate)
+        if candidate:
+            try:
+                import DaVinciResolveScript as bmd
+                resolved = bmd.scriptapp("Resolve")
+                if resolved:
+                    return resolved
+            except Exception:
+                pass
 
     return None
 
@@ -64,6 +79,12 @@ class ResolveBridge:
 
     def is_running(self) -> bool:
         return self.running or is_resolve_running()
+
+    def refresh_connection(self) -> bool:
+        """Re-check the Resolve scripting API after Resolve or external scripting starts."""
+        self.resolve = get_resolve_instance()
+        self.running = is_resolve_running()
+        return self.is_connected()
 
     def get_project_manager(self):
         if not self.resolve:
