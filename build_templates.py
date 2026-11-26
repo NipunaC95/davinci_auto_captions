@@ -58,7 +58,7 @@ TEMPLATES = {
             "round": 0.06,
         },
         "shadow": {"offset": (0.003, -0.004), "softness": 6, "alpha": 0.60},
-        "animated": False,
+        "animated": True,
     },
     "Cyber Neon": {
         "description": "Futuristic electric cyan text with multi-layer glowing outline and magenta atmospheric back glow.",
@@ -80,7 +80,7 @@ TEMPLATES = {
         "fill": (0.98, 0.98, 0.98, 1.0),
         "outline": {"thickness": 0.005, "color": (0.0, 0.0, 0.0, 0.50)},
         "shadow": {"offset": (0.0, -0.004), "softness": 8, "alpha": 0.75},
-        "animated": False,
+        "animated": True,
     },
     "Retro Comic Pop": {
         "description": "Retro comic style with warm gold text, black border, and extruded red 3D drop shadow.",

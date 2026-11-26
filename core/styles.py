@@ -63,7 +63,7 @@ STYLES = {
         "color_rgb": (0.98, 0.98, 0.98),
         "stroke_hex": None,
         "stroke_width": 0,
-        "animated": False,
+        "animated": True,
         "box_hex": "#101014",
         "box_opacity": 0.72,
         "default_chunk": "balanced",  # 4-6 words
@@ -97,7 +97,7 @@ STYLES = {
         "color_rgb": (1.0, 1.0, 1.0),
         "stroke_hex": "#000000",
         "stroke_width": 1,
-        "animated": False,
+        "animated": True,
         "default_chunk": "balanced",
         "default_case": "Original",
         "template_file": "Clean Minimalist.setting",

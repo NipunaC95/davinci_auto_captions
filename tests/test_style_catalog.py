@@ -48,15 +48,16 @@ class StyleCatalogTests(unittest.TestCase):
         self.assertEqual(keyframes[1].get("value"), "1.08 1.08")
         self.assertEqual(keyframes[2].get("value"), "1 1")
 
-    def test_static_original_style_does_not_add_motion_keyframes(self):
-        segment = CaptionSegment(1, 0.0, 1.0, "STATIC CAPTION", [])
+    def test_every_catalog_style_animates_generated_caption_text(self):
+        segment = CaptionSegment(1, 0.0, 1.0, "ANIMATED CAPTION", [])
         with tempfile.TemporaryDirectory() as directory:
             output_path = Path(directory) / "captions.fcpxml"
-            generate_fcpxml([segment], str(output_path), style_name="Cinematic Box")
-            title = ET.parse(output_path).find(".//title")
-
-        self.assertIsNotNone(title)
-        self.assertIsNone(title.find("./adjust-transform"))
+            for style_name in STYLES:
+                generate_fcpxml([segment], str(output_path), style_name=style_name)
+                title = ET.parse(output_path).find(".//title")
+                self.assertIsNotNone(title, style_name)
+                keyframes = title.findall("./adjust-transform/param[@name='scale']/keyframe")
+                self.assertEqual(len(keyframes), 3, style_name)
 
 
 if __name__ == "__main__":
