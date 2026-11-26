@@ -6,7 +6,21 @@ and external scripting connection.
 
 import os
 import sys
+import subprocess
 from typing import Optional, List, Dict, Any
+
+def is_resolve_running() -> bool:
+    """Checks if the DaVinci Resolve process is currently running on the system."""
+    try:
+        if sys.platform == "darwin" or sys.platform.startswith("linux"):
+            out = subprocess.check_output(["ps", "-A"], text=True)
+            return any("Resolve.app" in line or "/Resolve" in line for line in out.splitlines() if "grep" not in line)
+        elif sys.platform.startswith("win"):
+            out = subprocess.check_output(["tasklist"], text=True)
+            return "Resolve.exe" in out
+    except Exception:
+        pass
+    return False
 
 def get_resolve_instance():
     """Returns the active DaVinci Resolve script application instance."""
@@ -43,9 +57,13 @@ def get_resolve_instance():
 class ResolveBridge:
     def __init__(self, resolve_app=None):
         self.resolve = resolve_app or get_resolve_instance()
+        self.running = is_resolve_running()
 
     def is_connected(self) -> bool:
         return self.resolve is not None
+
+    def is_running(self) -> bool:
+        return self.running or is_resolve_running()
 
     def get_project_manager(self):
         if not self.resolve:

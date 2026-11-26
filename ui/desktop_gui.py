@@ -260,13 +260,22 @@ class AutoCaptionApp(tk.Tk):
 
     def _check_resolve_connection(self):
         connected = self.bridge.is_connected()
+        running = self.bridge.is_running()
+
         if connected:
             proj = self.bridge.get_current_project()
-            proj_name = proj.GetName() if proj else "No Project Open"
-            self.badge_label.config(text=f"🟢 Connected: {proj_name}", bg="#064E3B", fg="#6EE7B7")
-            self.import_btn.config(state="normal")
+            proj_name = proj.GetName() if proj else "Active"
+            self.badge_label.config(text=f"🟢 Studio API: {proj_name}", bg="#064E3B", fg="#6EE7B7")
+            self.import_btn.config(text="🎬 Send Directly to Resolve Timeline", state="normal")
+        elif running:
+            self.badge_label.config(text="🟢 DaVinci Resolve Free v21 Active", bg="#064E3B", fg="#6EE7B7")
+            self.import_btn.config(text="⚡ Send to DaVinci Resolve", state="normal")
         else:
-            self.badge_label.config(text="⚪ DaVinci Resolve Not Detected (Export Available)", bg="#2A2A38", fg="#9E9EAF")
+            self.badge_label.config(text="⚪ DaVinci Resolve Not Running", bg="#2A2A38", fg="#9E9EAF")
+            self.import_btn.config(text="💾 Generate Captions for Resolve", state="normal")
+
+        # Periodically refresh status every 4 seconds
+        self.after(4000, self._check_resolve_connection)
 
     def _on_style_changed(self, event=None):
         name = self.selected_style.get()
@@ -393,11 +402,14 @@ class AutoCaptionApp(tk.Tk):
             messagebox.showwarning("No Captions", "Please transcribe media first!")
             return
 
-        # Generate temporary FCPXML file
-        import tempfile
         style_name = self.selected_style.get()
-        tmp_dir = tempfile.gettempdir()
-        xml_path = os.path.join(tmp_dir, f"AutoCaptions_{style_name.replace(' ', '_')}.fcpxml")
+        movies_dir = os.path.expanduser("~/Movies")
+        if not os.path.exists(movies_dir):
+            movies_dir = os.path.expanduser("~")
+
+        safe_style = style_name.replace(" ", "_")
+        xml_path = os.path.join(movies_dir, f"Captions_{safe_style}.fcpxml")
+        srt_path = os.path.join(movies_dir, f"Captions_{safe_style}.srt")
 
         generate_fcpxml(
             segments=self.segments,
@@ -406,24 +418,33 @@ class AutoCaptionApp(tk.Tk):
             style_name=style_name,
             timeline_name=f"Captions_{style_name}"
         )
+        style = get_style(style_name)
+        export_srt(self.segments, srt_path, color_hex=style.get("color_hex"))
 
-        # Check bridge
-        if not self.bridge.is_connected():
-            # Prompt user to import the generated file
-            messagebox.showinfo(
-                "Exported XML",
-                f"DaVinci Resolve is not actively connected via API.\n\n"
-                f"FCPXML has been saved to:\n{xml_path}\n\n"
-                f"In DaVinci Resolve Free v21:\nGo to File > Import > Timeline... and select this file!"
-            )
-            return
+        # Reveal in Finder so the user can drag it directly into Resolve!
+        if sys.platform == "darwin":
+            subprocess.run(["open", "-R", xml_path], check=False)
 
-        success = self.bridge.import_timeline_xml(xml_path)
-        if success:
-            messagebox.showinfo("Success", f"Captions timeline imported successfully into DaVinci Resolve!\nStyle: {style_name}")
-            self.status_text.set("Captions timeline successfully sent to DaVinci Resolve!")
-        else:
-            messagebox.showwarning("Import Note", f"Automatic import could not be completed directly.\nYou can import the generated XML manually:\n{xml_path}")
+        # Check if Studio API connected
+        if self.bridge.is_connected():
+            success = self.bridge.import_timeline_xml(xml_path)
+            if success:
+                messagebox.showinfo("Success", f"Captions timeline imported directly into DaVinci Resolve!\nStyle: {style_name} ({len(self.segments)} clips)")
+                self.status_text.set("Captions successfully sent to DaVinci Resolve!")
+                return
+
+        # DaVinci Resolve Free v21 workflow
+        self.status_text.set(f"Captions ready! Drag {os.path.basename(xml_path)} into Resolve.")
+        messagebox.showinfo(
+            "⚡ Captions Ready for DaVinci Resolve Free v21!",
+            f"Created {len(self.segments)} animated caption clips with '{style_name}' style!\n\n"
+            f"The file has been revealed in your Finder:\n"
+            f"👉 {os.path.basename(xml_path)}\n\n"
+            f"HOW TO PUT ON YOUR TIMELINE:\n"
+            f"1. Simply DRAG the highlighted file into DaVinci Resolve's Media Pool or Timeline!\n"
+            f"   (Or go to File > Import > Timeline... and select it)\n\n"
+            f"Your entire styled caption track will appear instantly aligned to the audio!"
+        )
 
     def _export_fcpxml(self):
         if not self.segments:
