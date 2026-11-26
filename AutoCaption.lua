@@ -11,14 +11,6 @@ local existing_win = ui:FindWindow(winID)
 if existing_win then
     existing_win:Show()
     existing_win:Raise()
-    existing_win.On[winID].Close = function(ev)
-        disp:ExitLoop()
-    end
-    existing_win.On.CloseBtn.Clicked = function(ev)
-        disp:ExitLoop()
-    end
-    disp:RunLoop()
-    existing_win:Hide()
     return
 end
 
