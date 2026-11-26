@@ -7,13 +7,17 @@ A professional, high-performance auto-captioning plugin and drag-and-drop animat
 ## 🌟 Why This Plugin is Essential for DaVinci Resolve Free
 
 1. **Bypasses the Studio-Only Paywall**: In DaVinci Resolve, the native "Create Subtitles from Audio" feature is locked behind the paid **DaVinci Resolve Studio** license. This plugin brings fast, 100% free, private, offline speech recognition to the **Free version of DaVinci Resolve v21**.
-2. **Animated Drag-and-Drop Styles**: Built-in subtitle tracks in DaVinci Resolve are static and do not support bouncy animations, glowing strokes, or pop-ins. This plugin generates **Text+ Fusion Titles** on regular video tracks with **8 viral animated styles** that you can also drag and drop manually!
+2. **Animated Drag-and-Drop Styles**: Built-in subtitle tracks in DaVinci Resolve are static and do not support bouncy animations, glowing strokes, or pop-ins. This plugin generates **72 Text+ Fusion Title styles**, including eight original looks and 64 color/family variations, which you can also drag and drop manually.
 3. **Word-Level Precision**: Powered by OpenAI Whisper with millisecond word timestamps for 1-word punchy cuts, 2-3 word dynamic reels, or balanced sentences.
 4. **GPU Acceleration**: Uses your CUDA-capable NVIDIA GPU for Whisper when available; the Windows setup installs the CUDA-enabled PyTorch build.
 
 ---
 
-## 🎨 8 Drag-and-Drop Styles Included
+## 🎨 72 Visual Styles Included
+
+The eight original styles below are joined by 64 generated variants: eight visual families, each available in Lemon, Cyan, Pink, Lime, Orange, Violet, Ice Blue, and Rose Gold palettes. The desktop app and Resolve panel show visual previews for all styles before transcription begins.
+
+The generated families are **Viral Pop**, **Neon Glow**, **Comic Burst**, **Glass Caption**, **Clean Creator**, **Outline Flash**, **Gradient Rush**, and **Shadow Pop**. Variant names use the format `Family - Palette` (for example, `Neon Glow - Cyan`).
 
 | Style Name | Description | Best For |
 |---|---|---|
@@ -43,13 +47,13 @@ If `py` is not available, replace it with the full path to your Python executabl
 1. Double-click `AutoCaption.command` on macOS, or run `.\venv\Scripts\python.exe AutoCaption.py` on Windows.
 2. The **Auto Caption Studio** window will open.
 3. **Select your media**: Click **Browse...** to pick any video/audio file, or click **Fetch from Active Timeline** to auto-load media from DaVinci Resolve.
-4. **Choose your style**: Select any of the 8 presets (e.g., *Hormozi Viral*, *TikTok Bounce*, *Cinematic Box*).
+4. Click **🎨 Preview Styles & Transcribe**, then choose from the visual gallery. Selecting a preview starts transcription with that design.
 5. **Set timing & layout**:
    - **1_word**: 1 word per clip (ultra fast-paced).
    - **short**: 2–3 words per clip (the TikTok/Shorts sweet spot).
    - **balanced**: 4–6 words per clip (classic YouTube).
    - **sentence**: Natural full sentences.
-6. Click **🚀 Transcribe & Generate Captions**.
+6. Wait for transcription to finish.
    - Language **Auto** is restricted to English or Sinhala; select `en` or `si` to force one.
 7. Preview or edit any words in the interactive table.
 8. Click **🎬 Send to DaVinci Timeline** (or **💾 Export FCPXML** / **📄 Export SRT**).
@@ -62,6 +66,7 @@ If `py` is not available, replace it with the full path to your Python executabl
 2. In the top menu, go to:
    **Workspace > Scripts > Utility > AutoCaption**
 3. The Auto Caption panel opens in Resolve. It reads the active timeline and refreshes the live timeline connection while open.
+4. Click **Choose Style & Auto-Caption**, select a visual preview from the gallery, and transcription starts with that design.
 4. If `AutoCaption` is not listed, install or update the scripts with `.\venv\Scripts\python.exe installer\install.py`, then restart Resolve.
 
 ---
@@ -70,7 +75,7 @@ If `py` is not available, replace it with the full path to your Python executabl
 1. In DaVinci Resolve, switch to the **Edit** page.
 2. Open the **Effects Library** (top left).
 3. Expand **Titles > Auto Captions**.
-4. You will see all 8 custom styles:
+4. You will see all 72 custom styles. The original styles include:
    - `Hormozi Viral`
    - `TikTok Bounce`
    - `MrBeast Highlighter`

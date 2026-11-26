@@ -203,7 +203,7 @@ class AutoCaptionApp(tk.Tk):
         lang_cb.pack(side="right")
 
         # Transcribe Action Button
-        self.transcribe_btn = ttk.Button(left_card, text="🚀 Transcribe & Generate Captions", style="Accent.TButton",
+        self.transcribe_btn = ttk.Button(left_card, text="🎨 Preview Styles & Transcribe", style="Accent.TButton",
                                          command=self._start_transcription)
         self.transcribe_btn.pack(fill="x", ipady=4, pady=(0, 10))
 
@@ -355,6 +355,130 @@ class AutoCaptionApp(tk.Tk):
             if not media_path:
                 return
 
+        self._open_style_gallery()
+
+    def _open_style_gallery(self):
+        gallery = tk.Toplevel(self)
+        gallery.title("Choose a Caption Style")
+        gallery.geometry("1120x820")
+        gallery.minsize(800, 600)
+        gallery.configure(bg="#141418")
+        gallery.transient(self)
+        gallery.grab_set()
+
+        ttk.Label(
+            gallery,
+            text="Choose a visual caption design",
+            style="Header.TLabel",
+        ).pack(anchor="w", padx=18, pady=(16, 2))
+        ttk.Label(
+            gallery,
+            text="Preview each design and select it to begin transcription. Close this window to cancel.",
+            style="SubHeader.TLabel",
+        ).pack(anchor="w", padx=18, pady=(0, 12))
+
+        body = ttk.Frame(gallery)
+        body.pack(fill="both", expand=True, padx=14, pady=(0, 14))
+        canvas = tk.Canvas(body, bg="#141418", highlightthickness=0)
+        scrollbar = ttk.Scrollbar(body, orient="vertical", command=canvas.yview)
+        cards_frame = tk.Frame(canvas, bg="#141418")
+        cards_window = canvas.create_window((0, 0), window=cards_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+        cards_frame.bind(
+            "<Configure>",
+            lambda event: canvas.configure(scrollregion=canvas.bbox("all")),
+        )
+        canvas.bind(
+            "<Configure>",
+            lambda event: canvas.itemconfigure(cards_window, width=event.width),
+        )
+        canvas.bind(
+            "<MouseWheel>",
+            lambda event: canvas.yview_scroll(int(-event.delta / 120), "units"),
+        )
+
+        def draw_preview(preview, style):
+            preview.configure(
+                bg=style.get("preview_bg", "#18181D"),
+                highlightbackground="#454552",
+                highlightthickness=1,
+            )
+            preview.create_rectangle(
+                2, 2, 228, 90,
+                fill=style.get("preview_bg", "#18181D"),
+                outline=style.get("stroke_hex") or "#000000",
+                width=2,
+            )
+            kind = style.get("preview_kind", "pop")
+            fill = style.get("color_hex", "#FFFFFF")
+            stroke = style.get("stroke_hex") or "#000000"
+            accent = style.get("preview_accent", stroke)
+            font_family = style.get("font", "Arial")
+            if kind == "gradient":
+                preview.create_text(113, 42, text="VIRAL", fill=fill,
+                                   font=(font_family, 16, "bold"), anchor="e")
+                preview.create_text(117, 42, text=" CAPTION", fill="#FFFFFF",
+                                   font=(font_family, 16, "bold"), anchor="w")
+                return
+
+            if kind in {"neon", "shadow"}:
+                offsets = ((-2, 0), (2, 0), (0, -2), (0, 2), (-1, -1), (1, 1))
+                shadow_color = accent
+            elif kind == "comic":
+                offsets = ((3, 3), (-2, 0), (2, 0), (0, -2), (0, 2))
+                shadow_color = accent
+            else:
+                offsets = ((-2, 0), (2, 0), (0, -2), (0, 2))
+                shadow_color = stroke
+
+            for dx, dy in offsets:
+                preview.create_text(
+                    115 + dx, 43 + dy, text="VIRAL CAPTION",
+                    fill=shadow_color, font=(font_family, 15, "bold"),
+                )
+            preview.create_text(
+                115, 43, text="VIRAL CAPTION",
+                fill=fill, font=(font_family, 15, "bold"),
+            )
+
+        for index, (style_name, style) in enumerate(STYLES.items()):
+            row, column = divmod(index, 4)
+            card = tk.Frame(
+                cards_frame, bg="#1F1F27", highlightbackground="#343440",
+                highlightthickness=1, padx=8, pady=8,
+            )
+            card.grid(row=row, column=column, sticky="nsew", padx=5, pady=5)
+            cards_frame.grid_columnconfigure(column, weight=1, uniform="style-cards")
+
+            tk.Label(
+                card, text=style_name, bg="#1F1F27", fg="#FFFFFF",
+                font=("Helvetica", 10, "bold"), wraplength=230, justify="left",
+            ).pack(fill="x", anchor="w", pady=(0, 5))
+            preview = tk.Canvas(card, width=230, height=92, highlightthickness=0)
+            preview.pack(fill="x", pady=(0, 5))
+            draw_preview(preview, style)
+            tk.Label(
+                card, text=style["description"], bg="#1F1F27", fg="#9E9EAF",
+                font=("Helvetica", 8), wraplength=230, justify="left",
+                height=3,
+            ).pack(fill="x", anchor="w", pady=(0, 5))
+
+            def choose_style(name=style_name):
+                self.selected_style.set(name)
+                self._on_style_changed()
+                gallery.grab_release()
+                gallery.destroy()
+                self._begin_transcription()
+
+            ttk.Button(
+                card, text="Use This Style", style="Secondary.TButton",
+                command=choose_style,
+            ).pack(fill="x")
+
+    def _begin_transcription(self):
+        media_path = self.input_file_path.get().strip()
         self.transcribe_btn.config(state="disabled")
         self.progress_value.set(0.0)
         self.status_text.set("Initializing speech recognition...")

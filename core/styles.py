@@ -268,6 +268,7 @@ def _make_variant(name: str, family: str, kind: str, font: str, description: str
         "style": "Regular",
         "color_hex": text_hex,
         "color_rgb": fill[:3],
+        "preview_accent": accent_hex,
         "stroke_hex": stroke_hex,
         "stroke_rgb": _hex_rgba(stroke_hex)[:3],
         "stroke_width": stroke_width,

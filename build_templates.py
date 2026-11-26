@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Generates the 8 DaVinci Resolve Fusion Title .setting files
+Generates all DaVinci Resolve Fusion Title .setting files
 and packages them into the AutoCaptions.drfx bundle.
 """
 
