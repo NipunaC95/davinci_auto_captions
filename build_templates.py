@@ -173,44 +173,27 @@ def _build_fusion_animation(config: dict, center_y: float):
             transform_inputs.append(
                 '\t\t\t\t\t\tCenter = Input {\n\t\t\t\t\t\t\tSourceOp = "AnimCenterPath",\n\t\t\t\t\t\t\tSource = "Value",\n\t\t\t\t\t\t},'
             )
-            xy_inputs = []
-            if has_x:
-                xy_inputs.append('\t\t\t\tX = Input {\n\t\t\t\t\tSourceOp = "AnimCenterX",\n\t\t\t\t\tSource = "Value",\n\t\t\t\t},')
-                modifiers.append(
-                    _format_bezier_spline(
-                        "AnimCenterX",
-                        (255, 80, 80),
-                        [(f, 0.5 + dx) for f, dx, _ in offset_points],
-                        smooth=smooth,
-                    )
-                )
-            else:
-                xy_inputs.append('\t\t\t\tX = Input { Value = 0.5, },')
-
-            if has_y:
-                xy_inputs.append('\t\t\t\tY = Input {\n\t\t\t\t\tSourceOp = "AnimCenterY",\n\t\t\t\t\tSource = "Value",\n\t\t\t\t},')
-                modifiers.append(
-                    _format_bezier_spline(
-                        "AnimCenterY",
-                        (80, 220, 120),
-                        [(f, 0.5 + dy) for f, _, dy in offset_points],
-                        smooth=smooth,
-                    )
-                )
-            else:
-                xy_inputs.append('\t\t\t\tY = Input { Value = 0.5, },')
-
-            xy_inputs_str = "\n".join(xy_inputs)
+            x_points = [(f, 0.5 + dx) for f, dx, _ in offset_points] if has_x else [(0, 0.5)]
+            y_points = [(f, 0.5 + dy) for f, _, dy in offset_points] if has_y else [(0, 0.5)]
             modifiers.append(
                 "\t\tAnimCenterPath = XYPath {\n"
                 "\t\t\tShowKeyPoints = false,\n"
                 '\t\t\tDrawMode = "ModifyOnly",\n'
                 "\t\t\tCtrlWZoom = false,\n"
                 "\t\t\tInputs = {\n"
-                f"{xy_inputs_str}\n"
+                "\t\t\t\tX = Input {\n"
+                '\t\t\t\t\tSourceOp = "AnimCenterX",\n'
+                '\t\t\t\t\tSource = "Value",\n'
+                "\t\t\t\t},\n"
+                "\t\t\t\tY = Input {\n"
+                '\t\t\t\t\tSourceOp = "AnimCenterY",\n'
+                '\t\t\t\t\tSource = "Value",\n'
+                "\t\t\t\t},\n"
                 "\t\t\t}\n"
                 "\t\t}"
             )
+            modifiers.append(_format_bezier_spline("AnimCenterX", (255, 80, 80), x_points, smooth=smooth and has_x))
+            modifiers.append(_format_bezier_spline("AnimCenterY", (80, 220, 120), y_points, smooth=smooth and has_y))
 
     scale_points = preset.get("scale")
     if scale_points:
@@ -230,18 +213,23 @@ def _build_fusion_animation(config: dict, center_y: float):
             _format_bezier_spline("AnimAngleSpline", (120, 170, 255), rotation_points, smooth=smooth)
         )
 
-    opacity_points = list(preset.get("opacity", [(0, 1.0)]))
+    opacity_points = preset.get("opacity")
     outro_opacity = preset.get("outro_opacity")
-    if outro_opacity:
-        opacity_points.extend(outro_opacity)
-        stretch_end = 114
+    has_fade = bool(opacity_points)
+    if has_fade:
+        combined_opacity = list(opacity_points)
+        if outro_opacity:
+            combined_opacity.extend(outro_opacity)
+            stretch_end = 114
+        else:
+            stretch_end = 119
+        modifiers.append(
+            _format_bezier_spline("AnimOpacitySpline", (200, 120, 255), combined_opacity, smooth=smooth)
+        )
     else:
         stretch_end = 119
-    modifiers.append(
-        _format_bezier_spline("AnimOpacitySpline", (200, 120, 255), opacity_points, smooth=smooth)
-    )
 
-    return "\n".join(transform_inputs), ",\n".join(modifiers), stretch_start, stretch_end
+    return "\n".join(transform_inputs), ",\n".join(modifiers), stretch_start, stretch_end, has_fade
 
 
 def generate_setting_file(name, config):
@@ -412,10 +400,30 @@ def generate_setting_file(name, config):
 
     inputs_str = "\n".join(inputs_lua)
 
-    # If animated, wrap in a GroupOperator with Transform, FadeMerge, and KeyStretcher
+    # If animated, wrap in a GroupOperator with Transform, optional BrightnessContrast fade, and KeyStretcher
     if animated:
         safe_tool_id = re.sub(r"[^A-Za-z0-9_]", "", name)
-        transform_inputs, modifiers_str, stretch_start, stretch_end = _build_fusion_animation(config, center_y)
+        transform_inputs, modifiers_str, stretch_start, stretch_end, has_fade = _build_fusion_animation(config, center_y)
+        fade_tool = ""
+        stretcher_source = "AnimTransform"
+        if has_fade:
+            stretcher_source = "AnimFade"
+            fade_tool = """
+				AnimFade = BrightnessContrast {
+					CtrlWZoom = false,
+					Inputs = {
+						Alpha = Input { Value = 1, },
+						Gain = Input {
+							SourceOp = "AnimOpacitySpline",
+							Source = "Value",
+						},
+						Input = Input {
+							SourceOp = "AnimTransform",
+							Source = "Output",
+						},
+					},
+					ViewInfo = OperatorInfo { Pos = { 230, 10 } },
+				},"""
         content = f"""{{
 	Tools = ordered() {{
 		{safe_tool_id} = GroupOperator {{
@@ -485,41 +493,11 @@ def generate_setting_file(name, config):
 {transform_inputs}
 					}},
 					ViewInfo = OperatorInfo {{ Pos = {{ 120, 10 }} }},
-				}},
-				TransparentBG = Background {{
-					CtrlWZoom = false,
-					Inputs = {{
-						Width = Input {{ Value = 1920, }},
-						Height = Input {{ Value = 1080, }},
-						UseFrameFormatSettings = Input {{ Value = 1, }},
-						["Gamut.SLogVersion"] = Input {{ Value = FuID {{ "SLog2" }}, }},
-						TopLeftAlpha = Input {{ Value = 0, }},
-					}},
-					ViewInfo = OperatorInfo {{ Pos = {{ 120, 90 }} }},
-				}},
-				FadeMerge = Merge {{
-					CtrlWZoom = false,
-					Inputs = {{
-						Background = Input {{
-							SourceOp = "TransparentBG",
-							Source = "Output",
-						}},
-						Foreground = Input {{
-							SourceOp = "AnimTransform",
-							Source = "Output",
-						}},
-						Blend = Input {{
-							SourceOp = "AnimOpacitySpline",
-							Source = "Value",
-						}},
-						PerformDepthMerge = Input {{ Value = 0, }},
-					}},
-					ViewInfo = OperatorInfo {{ Pos = {{ 230, 10 }} }},
-				}},
+				}},{fade_tool}
 				KeyframeStretcher1 = KeyStretcher {{
 					Inputs = {{
 						Keyframes = Input {{
-							SourceOp = "FadeMerge",
+							SourceOp = "{stretcher_source}",
 							Source = "Output",
 						}},
 						SourceEnd = Input {{ Value = 120, }},

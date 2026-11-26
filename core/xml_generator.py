@@ -34,10 +34,9 @@ def _scale_keyframes(points, duration_frames: int, base_frames: int):
     return mapped
 
 
-def _build_keyframe_xml(param_name: str, keyframes, fps: float, format_value, interp: str, curve: str = "") -> list[str]:
+def _build_keyframe_xml(param_name: str, keyframes, fps: float, format_value, curve: str = "", interp: str = "") -> list[str]:
     if not keyframes:
         return []
-    curve_attr = f' curve="{curve}"' if curve else ""
     lines = [
         f'                <param name="{param_name}">',
         '                  <keyframeAnimation>',
@@ -45,10 +44,12 @@ def _build_keyframe_xml(param_name: str, keyframes, fps: float, format_value, in
     for idx, (frame, val) in enumerate(keyframes):
         time_str = "0s" if frame == 0 else frames_to_fcpxml_time(frame, fps)
         val_str = format_value(val)
-        if idx == 0:
-            lines.append(f'                    <keyframe time="{time_str}" value="{val_str}"/>')
-        else:
-            lines.append(f'                    <keyframe time="{time_str}" value="{val_str}" interp="{interp}"{curve_attr}/>')
+        attrs = [f'time="{time_str}"', f'value="{val_str}"']
+        if interp and idx > 0:
+            attrs.append(f'interp="{interp}"')
+        if curve:
+            attrs.append(f'curve="{curve if idx > 0 else "linear"}"')
+        lines.append(f'                    <keyframe {" ".join(attrs)}/>')
     lines.extend([
         '                  </keyframeAnimation>',
         '                </param>',
@@ -141,8 +142,7 @@ def generate_fcpxml(
         ])
         if animated and duration_frames > 1:
             base_frames = int(preset.get("base_frames", 10))
-            interp = "easeOut"
-            curve = "smooth" if preset.get("smooth") else ""
+            curve = "smooth" if preset.get("smooth") else "linear"
 
             transform_params = []
             offset_points = preset.get("offset")
@@ -158,8 +158,6 @@ def generate_fcpxml(
                         pos_kfs,
                         fps,
                         lambda v: f"{v[0]:g} {v[1]:g}",
-                        interp,
-                        curve,
                     )
                 )
 
@@ -172,8 +170,7 @@ def generate_fcpxml(
                         scale_kfs,
                         fps,
                         lambda v: f"{v:g} {v:g}",
-                        interp,
-                        curve,
+                        curve=curve,
                     )
                 )
 
@@ -186,13 +183,12 @@ def generate_fcpxml(
                         rot_kfs,
                         fps,
                         lambda v: f"{v:g}",
-                        interp,
-                        curve,
+                        curve=curve,
                     )
                 )
 
             if transform_params:
-                lines.append('              <adjust-transform position="0 0" scale="1 1" rotation="0">')
+                lines.append('              <adjust-transform>')
                 lines.extend(transform_params)
                 lines.append('              </adjust-transform>')
 
@@ -204,17 +200,16 @@ def generate_fcpxml(
                     fade_start = duration_frames - 5
                     fade_end = duration_frames - 1
                     if not opacity_kfs or opacity_kfs[-1][0] < fade_start:
-                        opacity_kfs.extend([(fade_start, 1.0), (fade_end, 0.0)])
+                        opacity_kfs.extend([(fade_start, 1.0), (fade_end, outro_opacity[-1][1])])
                 blend_params = _build_keyframe_xml(
-                    "amount",
+                    "opacity",
                     opacity_kfs,
                     fps,
                     lambda v: f"{v:g}",
-                    interp,
-                    curve,
+                    curve=curve,
                 )
                 if blend_params:
-                    lines.append('              <adjust-blend amount="1">')
+                    lines.append('              <adjust-blend>')
                     lines.extend(blend_params)
                     lines.append('              </adjust-blend>')
         lines.append('            </title>')

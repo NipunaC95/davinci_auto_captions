@@ -113,40 +113,10 @@
 					},
 					ViewInfo = OperatorInfo { Pos = { 120, 10 } },
 				},
-				TransparentBG = Background {
-					CtrlWZoom = false,
-					Inputs = {
-						Width = Input { Value = 1920, },
-						Height = Input { Value = 1080, },
-						UseFrameFormatSettings = Input { Value = 1, },
-						["Gamut.SLogVersion"] = Input { Value = FuID { "SLog2" }, },
-						TopLeftAlpha = Input { Value = 0, },
-					},
-					ViewInfo = OperatorInfo { Pos = { 120, 90 } },
-				},
-				FadeMerge = Merge {
-					CtrlWZoom = false,
-					Inputs = {
-						Background = Input {
-							SourceOp = "TransparentBG",
-							Source = "Output",
-						},
-						Foreground = Input {
-							SourceOp = "AnimTransform",
-							Source = "Output",
-						},
-						Blend = Input {
-							SourceOp = "AnimOpacitySpline",
-							Source = "Value",
-						},
-						PerformDepthMerge = Input { Value = 0, },
-					},
-					ViewInfo = OperatorInfo { Pos = { 230, 10 } },
-				},
 				KeyframeStretcher1 = KeyStretcher {
 					Inputs = {
 						Keyframes = Input {
-							SourceOp = "FadeMerge",
+							SourceOp = "AnimTransform",
 							Source = "Output",
 						},
 						SourceEnd = Input { Value = 120, },
@@ -164,13 +134,6 @@
 				[4] = { 1.16, Flags = { Linear = true } },
 				[7] = { 0.97, Flags = { Linear = true } },
 				[10] = { 1, Flags = { Linear = true } }
-			}
-		},
-		AnimOpacitySpline = BezierSpline {
-			SplineColor = { Red = 200, Green = 120, Blue = 255 },
-			KeyFrames = {
-				[0] = { 0, Flags = { Linear = true } },
-				[2] = { 1, Flags = { Linear = true } }
 			}
 		}
 	},

@@ -36,9 +36,13 @@ class StyleCatalogTests(unittest.TestCase):
             self.assertIn("GroupOperator", content, name)
             self.assertIn("KeyStretcher", content, name)
             self.assertIn("AnimTransform = Transform", content, name)
-            self.assertIn("FadeMerge = Merge", content, name)
             self.assertIn("AnimSizeSpline = BezierSpline", content, name)
-            self.assertIn("AnimOpacitySpline = BezierSpline", content, name)
+            self.assertNotIn("TransparentBG", content, name)
+            if "opacity" in ANIMATION_PRESETS[config["animation"]]:
+                self.assertIn("AnimFade = BrightnessContrast", content, name)
+                self.assertIn("AnimOpacitySpline = BezierSpline", content, name)
+                first_opacity = ANIMATION_PRESETS[config["animation"]]["opacity"][0][1]
+                self.assertGreater(first_opacity, 0.0, name)
             self.assertIn(f'ActiveTool = "{safe_tool_id}"', content, name)
             tool_ids.add(safe_tool_id)
 
@@ -51,6 +55,7 @@ class StyleCatalogTests(unittest.TestCase):
 
         slide_template = generate_setting_file("Cinematic Box", TEMPLATES["Cinematic Box"])
         self.assertIn("AnimCenterPath = XYPath", slide_template)
+        self.assertIn("AnimCenterX = BezierSpline", slide_template)
         self.assertIn("AnimCenterY = BezierSpline", slide_template)
 
     def test_caption_xml_animates_generated_text_with_valid_keyframe_animation(self):
@@ -67,9 +72,20 @@ class StyleCatalogTests(unittest.TestCase):
         self.assertEqual(keyframes[1].get("value"), "1.16 1.16")
         self.assertEqual(keyframes[2].get("value"), "0.97 0.97")
         self.assertEqual(keyframes[3].get("value"), "1 1")
+        self.assertIsNone(title.find("./adjust-blend"))
 
-        opacity_keyframes = title.findall("./adjust-blend/param[@name='amount']/keyframeAnimation/keyframe")
-        self.assertEqual(len(opacity_keyframes), 2)
+        with tempfile.TemporaryDirectory() as directory:
+            slide_path = Path(directory) / "slide.fcpxml"
+            generate_fcpxml([segment], str(slide_path), style_name="Cinematic Box")
+            slide_title = ET.parse(slide_path).find(".//title")
+
+        self.assertIsNotNone(slide_title)
+        opacity_keyframes = slide_title.findall("./adjust-blend/param[@name='opacity']/keyframeAnimation/keyframe")
+        self.assertGreaterEqual(len(opacity_keyframes), 2)
+        self.assertGreater(float(opacity_keyframes[0].get("value")), 0.0)
+        for pos_kf in slide_title.findall("./adjust-transform/param[@name='position']/keyframeAnimation/keyframe"):
+            self.assertIsNone(pos_kf.get("interp"))
+            self.assertIsNone(pos_kf.get("curve"))
 
     def test_every_catalog_style_animates_generated_caption_text(self):
         segment = CaptionSegment(1, 0.0, 1.0, "ANIMATED CAPTION", [])
