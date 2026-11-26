@@ -5,6 +5,7 @@ Main entrypoint for internal Resolve script menu and standalone launcher.
 """
 
 import os
+import subprocess
 import sys
 
 # Locate root auto_captions project directory
@@ -32,6 +33,50 @@ if not PROJECT_DIR:
 if PROJECT_DIR not in sys.path:
     sys.path.insert(0, PROJECT_DIR)
 
+def load_resolve_scripting_module():
+    if sys.platform.startswith("win"):
+        modules_dir = os.path.join(
+            os.getenv("PROGRAMDATA", r"C:\ProgramData"),
+            "Blackmagic Design",
+            "DaVinci Resolve",
+            "Support",
+            "Developer",
+            "Scripting",
+            "Modules",
+        )
+        if os.path.isdir(modules_dir) and modules_dir not in sys.path:
+            sys.path.insert(0, modules_dir)
+
+        if not os.environ.get("RESOLVE_SCRIPT_LIB"):
+            command = (
+                "$p = Get-Process -Name Resolve -ErrorAction Stop | "
+                "Select-Object -First 1 -ExpandProperty Path; "
+                "if ($p) { Split-Path -Parent $p }"
+            )
+            result = subprocess.run(
+                ["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", command],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            if result.returncode == 0 and result.stdout.strip():
+                resolve_dir = result.stdout.strip().splitlines()[-1]
+                library = os.path.join(resolve_dir, "fusionscript.dll")
+                if os.path.isfile(library):
+                    os.environ["RESOLVE_SCRIPT_LIB"] = library
+                    os.environ["PATH"] = resolve_dir + os.pathsep + os.environ.get("PATH", "")
+
+    import DaVinciResolveScript as scripting_module
+    return scripting_module
+
+
+def show_launcher_error(message):
+    print(f"[AutoCaption] {message}")
+    if sys.platform.startswith("win"):
+        import ctypes
+        ctypes.windll.user32.MessageBoxW(None, message, "Auto Caption Studio", 0x10)
+
+
 def main():
     os.environ["AUTO_CAPTION_PROJECT_DIR"] = PROJECT_DIR
     if sys.platform.startswith("win"):
@@ -43,20 +88,27 @@ def main():
     resolve_app = globals().get("resolve")
     fusion_app = globals().get("fusion")
     scripting_module = globals().get("bmd")
+    is_resolve_script = os.path.basename(
+        os.path.dirname(os.path.dirname(SCRIPT_DIR))
+    ).lower() == "fusion"
     is_inside_resolve = bool(resolve_app or fusion_app or scripting_module)
     
-    if is_inside_resolve:
+    if is_inside_resolve or is_resolve_script:
         if not scripting_module:
             try:
-                import DaVinciResolveScript as scripting_module
-            except ImportError:
-                scripting_module = None
+                scripting_module = load_resolve_scripting_module()
+            except ImportError as error:
+                show_launcher_error(f"Could not load the Resolve scripting API: {error}")
+                return
         if scripting_module and not resolve_app:
             resolve_app = scripting_module.scriptapp("Resolve")
         if scripting_module and not fusion_app:
             fusion_app = scripting_module.scriptapp("Fusion")
         if not (resolve_app and fusion_app and scripting_module):
-            print("[AutoCaption] Resolve scripting objects are unavailable; run this from Workspace > Scripts.")
+            show_launcher_error(
+                "Could not connect to Resolve/Fusion. Make sure Resolve is open, then run "
+                "Workspace > Scripts > Utility > AutoCaption."
+            )
             return
 
         from ui.fusion_ui import run_fusion_ui
@@ -66,13 +118,6 @@ def main():
             resolve_app=resolve_app,
         )
     else:
-        is_resolve_script = os.path.basename(
-            os.path.dirname(os.path.dirname(SCRIPT_DIR))
-        ).lower() == "fusion"
-        if is_resolve_script:
-            print("[AutoCaption] Resolve context is unavailable; run this from Workspace > Scripts.")
-            return
-
         # Check if running outside venv
         if os.path.exists(venv_python) and sys.executable != venv_python:
             import subprocess
