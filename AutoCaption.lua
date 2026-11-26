@@ -14,8 +14,9 @@ if existing_win then
     return
 end
 
-local project_dir = "/Users/nipunachandimal/Documents/Development/auto_captions"
-local venv_py = project_dir .. "/venv/bin/python3"
+local project_dir = "__AUTO_CAPTION_PROJECT_DIR__"
+local is_windows = package.config:sub(1, 1) == "\\"
+local venv_py = project_dir .. (is_windows and "/venv/Scripts/python.exe" or "/venv/bin/python3")
 local quick_caption_cli = project_dir .. "/core/quick_caption.py"
 
 -- Query current project and timeline
@@ -100,6 +101,7 @@ ui:VGroup({ Spacing = 8, Margin = 15 }, {
         ui:Button({ ID = "BrowseBtn", Text = "Browse...", Weight = 0.2 }),
     }),
     ui:Label({ ID = "TimelineStatus", Text = '<small style="color:#10B981;">● Active Timeline: ' .. timeline_name .. " (" .. #found_media .. " media clips detected)</small>", Weight = 0 }),
+    ui:Timer({ ID = "LiveTimelineTimer", Interval = 3000, SingleShot = false }),
     ui:VGap(4),
 
     -- Section 2: Style Preset Picker
@@ -128,10 +130,7 @@ ui:VGroup({ Spacing = 8, Margin = 15 }, {
     -- Action Buttons
     ui:VGap(4),
     ui:Button({ ID = "ActionBtn", Text = "⚡ AUTO-CAPTION TIMELINE NOW", Weight = 0 }),
-    ui:HGroup({ Weight = 0 }, {
-        ui:Button({ ID = "StudioGuiBtn", Text = "🚀 Open Full Word Editor (Standalone GUI)", Weight = 0.5 }),
-        ui:Button({ ID = "CloseBtn", Text = "Close Panel", Weight = 0.5 }),
-    }),
+    ui:Button({ ID = "CloseBtn", Text = "Close Panel", Weight = 0 }),
 }))
 
 local items = win:GetItems()
@@ -177,11 +176,38 @@ win.On[winID].Close = function(ev)
     disp:ExitLoop()
 end
 
-win.On.StudioGuiBtn.Clicked = function(ev)
-    disp:ExitLoop()
-    local desktop_script = project_dir .. "/ui/desktop_gui.py"
-    os.execute(venv_py .. ' "' .. desktop_script .. '" &')
+local function refresh_live_timeline()
+    local live_pm = resolve and resolve:GetProjectManager()
+    local live_project = live_pm and live_pm:GetCurrentProject()
+    local live_timeline = live_project and live_project:GetCurrentTimeline()
+    if not live_timeline then
+        items.TimelineStatus.Text = '<small style="color:#9E9EAF;">● Resolve connected - no timeline open</small>'
+        return
+    end
+
+    local live_media = {}
+    for _, t_type in ipairs({"video", "audio"}) do
+        local count = live_timeline:GetTrackCount(t_type) or 0
+        for idx = 1, count do
+            for _, item in ipairs(live_timeline:GetItemListInTrack(t_type, idx) or {}) do
+                local mp_item = item:GetMediaPoolItem()
+                local props = mp_item and mp_item:GetClipProperty()
+                local fp = props and props["File Path"]
+                if fp and fp ~= "" and not live_media[fp] then
+                    live_media[#live_media + 1] = fp
+                    live_media[fp] = true
+                end
+            end
+        end
+    end
+
+    items.TimelineStatus.Text = '<small style="color:#10B981;">● Live Timeline: ' .. live_timeline:GetName() .. " (" .. #live_media .. " media clips detected)</small>"
+    if #live_media > 0 and items.FileBox.Text == "" then
+        items.FileBox.Text = live_media[1]
+    end
 end
+
+win.On.LiveTimelineTimer.Timer = refresh_live_timeline
 
 win.On.ActionBtn.Clicked = function(ev)
     local media_file = items.FileBox.Text
@@ -189,6 +215,12 @@ win.On.ActionBtn.Clicked = function(ev)
         items.StatusMsg.Text = '<span style="color:#EF4444;">Please select a media file or open a timeline with clips first!</span>'
         return
     end
+    local python_file = io.open(venv_py, "rb")
+    if not python_file then
+        items.StatusMsg.Text = '<span style="color:#EF4444;">Python environment not found. Run the setup commands from the project README.</span>'
+        return
+    end
+    python_file:close()
 
     local style_idx = items.StyleCombo.CurrentIndex + 1
     local chosen_style = styles[style_idx] or "Hormozi Viral"
@@ -214,16 +246,31 @@ win.On.ActionBtn.Clicked = function(ev)
     items.StatusMsg.Text = '<span style="color:#F3A63B;">⏳ Transcribing speech and creating captions... Please wait.</span>'
     items.ActionBtn.Enabled = false
 
-    local cmd = string.format(
-        '%s "%s" --media "%s" --style "%s" --chunk "%s" --model "%s" &',
-        venv_py, quick_caption_cli, media_file, chosen_style, chunk_mode, model_name
-    )
-    os.execute(cmd)
+    local cmd
+    if is_windows then
+        cmd = string.format(
+            'start "" /B "%s" "%s" --media "%s" --style "%s" --chunk "%s" --model "%s" --auto-import',
+            venv_py, quick_caption_cli, media_file, chosen_style, chunk_mode, model_name
+        )
+    else
+        cmd = string.format(
+            '"%s" "%s" --media "%s" --style "%s" --chunk "%s" --model "%s" --auto-import >/tmp/autocaption.log 2>&1 &',
+            venv_py, quick_caption_cli, media_file, chosen_style, chunk_mode, model_name
+        )
+    end
 
-    items.StatusMsg.Text = '<span style="color:#10B981;"><b>✓ Transcription started!</b> Captions will be imported automatically into your timeline.</span>'
+    local result = os.execute(cmd)
+    if result == nil or result == false or result == 1 then
+        items.StatusMsg.Text = '<span style="color:#EF4444;">Could not start transcription. Check the Python environment setup.</span>'
+        items.ActionBtn.Enabled = true
+        return
+    end
+    items.StatusMsg.Text = '<span style="color:#F3A63B;"><b>Transcription started.</b> Captions will import into Resolve when complete.</span>'
     items.ActionBtn.Enabled = true
 end
 
 win:Show()
+items.LiveTimelineTimer:Start()
 disp:RunLoop()
+items.LiveTimelineTimer:Stop()
 win:Hide()

@@ -9,6 +9,61 @@ import sys
 import subprocess
 from typing import Optional, List, Dict, Any
 
+_DLL_DIRECTORY_HANDLES = []
+
+
+def _prepare_resolve_scripting():
+    if sys.platform.startswith("win"):
+        modules_dir = os.path.join(
+            os.getenv("PROGRAMDATA", r"C:\ProgramData"),
+            "Blackmagic Design",
+            "DaVinci Resolve",
+            "Support",
+            "Developer",
+            "Scripting",
+            "Modules",
+        )
+        if os.path.isdir(modules_dir) and modules_dir not in sys.path:
+            sys.path.insert(0, modules_dir)
+
+        if not os.getenv("RESOLVE_SCRIPT_LIB"):
+            command = (
+                "$p = Get-Process -Name Resolve -ErrorAction Stop | "
+                "Select-Object -First 1 -ExpandProperty Path; "
+                "if ($p) { Split-Path -Parent $p }"
+            )
+            try:
+                result = subprocess.run(
+                    ["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", command],
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                    timeout=5,
+                )
+            except (OSError, subprocess.SubprocessError) as error:
+                print(f"[AutoCaption] Could not locate Resolve's scripting library: {error}")
+                return
+
+            if result.returncode != 0 or not result.stdout.strip():
+                return
+
+            resolve_dir = result.stdout.strip().splitlines()[-1]
+            script_library = os.path.join(resolve_dir, "fusionscript.dll")
+            if os.path.isfile(script_library):
+                os.environ["RESOLVE_SCRIPT_LIB"] = script_library
+                os.environ["PATH"] = resolve_dir + os.pathsep + os.environ.get("PATH", "")
+                if hasattr(os, "add_dll_directory"):
+                    _DLL_DIRECTORY_HANDLES.append(os.add_dll_directory(resolve_dir))
+    elif sys.platform.startswith("darwin"):
+        modules_dir = "/Library/Application Support/Blackmagic Design/DaVinci Resolve/Developer/Scripting/Modules"
+        if modules_dir not in sys.path:
+            sys.path.insert(0, modules_dir)
+    elif sys.platform.startswith("linux"):
+        modules_dir = "/opt/resolve/Developer/Scripting/Modules"
+        if modules_dir not in sys.path:
+            sys.path.insert(0, modules_dir)
+
+
 def is_resolve_running() -> bool:
     """Checks if the DaVinci Resolve process is currently running on the system."""
     try:
@@ -28,44 +83,14 @@ def get_resolve_instance():
     if "resolve" in globals():
         return globals()["resolve"]
     
+    _prepare_resolve_scripting()
+
     # 2. Try importing DaVinciResolveScript
     try:
         import DaVinciResolveScript as bmd
         return bmd.scriptapp("Resolve")
-    except ImportError:
-        pass
-
-    # 3. Try platform default paths
-    lib_path = ""
-    if sys.platform.startswith("darwin"):
-        lib_path = "/Library/Application Support/Blackmagic Design/DaVinci Resolve/Developer/Scripting/Modules/"
-    elif sys.platform.startswith("win"):
-        lib_path = os.getenv("PROGRAMDATA", "C:\\ProgramData") + "\\Blackmagic Design\\DaVinci Resolve\\Support\\Developer\\Scripting\\Modules\\"
-    elif sys.platform.startswith("linux"):
-        lib_path = "/opt/resolve/Developer/Scripting/Modules/"
-
-    candidates = [lib_path]
-    resolve_script_dll = os.getenv("RESOLVE_SCRIPT_LIB", "")
-    candidates.append(resolve_script_dll)
-    if sys.platform.startswith("win"):
-        candidates.extend([
-            r"H:\Program Files\Blackmagic Design\DaVinci Resolve\Support\Developer\Scripting\Modules",
-            r"H:\Program Files\Blackmagic Design\DaVinci Resolve\Developer\Scripting\Modules",
-            r"C:\Program Files\Blackmagic Design\DaVinci Resolve\Support\Developer\Scripting\Modules",
-            r"C:\Program Files\Blackmagic Design\DaVinci Resolve\Developer\Scripting\Modules",
-        ])
-
-    for candidate in candidates:
-        if candidate and os.path.isdir(candidate) and candidate not in sys.path:
-            sys.path.insert(0, candidate)
-        if candidate:
-            try:
-                import DaVinciResolveScript as bmd
-                resolved = bmd.scriptapp("Resolve")
-                if resolved:
-                    return resolved
-            except Exception:
-                pass
+    except ImportError as error:
+        print(f"[AutoCaption] Could not load the Resolve scripting API: {error}")
 
     return None
 

@@ -33,8 +33,6 @@ def install_all():
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     templates_src = os.path.join(base_dir, "templates")
     drfx_src = os.path.join(base_dir, "dist", "AutoCaptions.drfx")
-    core_src = os.path.join(base_dir, "core")
-    ui_src = os.path.join(base_dir, "ui")
 
     # 1. Install .setting files to Templates/Edit/Titles/Auto Captions
     target_titles_dir = os.path.join(paths["templates_titles"], "Auto Captions")
@@ -54,24 +52,25 @@ def install_all():
         dst_drfx = os.path.join(paths["templates_titles"], "AutoCaptions.drfx")
         shutil.copy2(drfx_src, dst_drfx)
 
-    # 3. Install Resolve Scripts
-    script_entry = os.path.join(base_dir, "AutoCaption.py")
-    installed_scripts = []
-    for script_folder in [paths["scripts_utility"], paths["scripts_edit"]]:
-        os.makedirs(script_folder, exist_ok=True)
-        target_script = os.path.join(script_folder, "AutoCaption.py")
-        shutil.copy2(script_entry, target_script)
-        with open(os.path.join(script_folder, "AutoCaption.project"), "w", encoding="utf-8") as marker:
-            marker.write(base_dir)
-        installed_scripts.append(target_script)
+    # 3. Install the native Fusion UI script in the Utility menu.
+    script_folder = paths["scripts_utility"]
+    os.makedirs(script_folder, exist_ok=True)
+    script_entry = os.path.join(base_dir, "AutoCaption.lua")
+    target_script = os.path.join(script_folder, "AutoCaption.lua")
+    with open(script_entry, "r", encoding="utf-8") as source:
+        script_content = source.read().replace(
+            "__AUTO_CAPTION_PROJECT_DIR__",
+            base_dir.replace("\\", "/"),
+        )
+    with open(target_script, "w", encoding="utf-8") as target:
+        target.write(script_content)
 
-        # Copy runtime modules next to the installed entry script so it works
-        # independently of the original repository checkout.
-        for src_dir, dirname in ((core_src, "core"), (ui_src, "ui")):
-            dst_dir = os.path.join(script_folder, dirname)
-            if os.path.isdir(dst_dir):
-                shutil.rmtree(dst_dir)
-            shutil.copytree(src_dir, dst_dir)
+    # Remove the previous Python menu entries so Resolve uses the native panel.
+    for script_folder_to_clean in (paths["scripts_utility"], paths["scripts_edit"]):
+        old_python_entry = os.path.join(script_folder_to_clean, "AutoCaption.py")
+        if os.path.isfile(old_python_entry):
+            os.remove(old_python_entry)
+    installed_scripts = [target_script]
 
     return {
         "success": True,

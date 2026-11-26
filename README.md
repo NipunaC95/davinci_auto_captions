@@ -89,11 +89,11 @@ The installation script (`installer/install.py`) automatically placed all files 
 - **Fusion Templates (.setting & .drfx)**:
   `~/Library/Application Support/Blackmagic Design/DaVinci Resolve/Fusion/Templates/Edit/Titles/Auto Captions/`
 - **Resolve Script Menu**:
-  `~/Library/Application Support/Blackmagic Design/DaVinci Resolve/Fusion/Scripts/Utility/AutoCaption.py`
+  `~/Library/Application Support/Blackmagic Design/DaVinci Resolve/Fusion/Scripts/Utility/AutoCaption.lua`
 
 To re-install or update anytime:
 ```bash
-python3 installer/install.py
+.\venv\Scripts\python.exe installer\install.py
 ```
 
 ---
