@@ -9,6 +9,7 @@ A professional, high-performance auto-captioning plugin and drag-and-drop animat
 1. **Bypasses the Studio-Only Paywall**: In DaVinci Resolve, the native "Create Subtitles from Audio" feature is locked behind the paid **DaVinci Resolve Studio** license. This plugin brings fast, 100% free, private, offline speech recognition to the **Free version of DaVinci Resolve v21**.
 2. **Animated Drag-and-Drop Styles**: Built-in subtitle tracks in DaVinci Resolve are static and do not support bouncy animations, glowing strokes, or pop-ins. This plugin generates **Text+ Fusion Titles** on regular video tracks with **8 viral animated styles** that you can also drag and drop manually!
 3. **Word-Level Precision**: Powered by OpenAI Whisper with millisecond word timestamps for 1-word punchy cuts, 2-3 word dynamic reels, or balanced sentences.
+4. **GPU Acceleration**: Uses your CUDA-capable NVIDIA GPU for Whisper when available; the Windows setup installs the CUDA-enabled PyTorch build.
 
 ---
 
