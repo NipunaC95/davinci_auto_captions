@@ -29,8 +29,17 @@ A professional, high-performance auto-captioning plugin and drag-and-drop animat
 
 ## 🚀 How to Use
 
+### Windows First-Time Setup
+From the project folder, create the Python environment and install Whisper before installing the Resolve scripts:
+```powershell
+py -3 -m venv venv
+.\venv\Scripts\python.exe -m pip install -r requirements.txt
+.\venv\Scripts\python.exe installer\install.py
+```
+If `py` is not available, replace it with the full path to your Python executable.
+
 ### Method 1: Using the Desktop Studio App (Recommended)
-1. Double-click `AutoCaption.command` in this folder (or run `python3 AutoCaption.py`).
+1. Double-click `AutoCaption.command` on macOS, or run `.\venv\Scripts\python.exe AutoCaption.py` on Windows.
 2. The **Auto Caption Studio** window will open.
 3. **Select your media**: Click **Browse...** to pick any video/audio file, or click **Fetch from Active Timeline** to auto-load media from DaVinci Resolve.
 4. **Choose your style**: Select any of the 8 presets (e.g., *Hormozi Viral*, *TikTok Bounce*, *Cinematic Box*).
@@ -51,7 +60,7 @@ A professional, high-performance auto-captioning plugin and drag-and-drop animat
 2. In the top menu, go to:
    **Workspace > Scripts > Utility > AutoCaption**
 3. The Auto Caption panel opens in Resolve. It reads the active timeline and refreshes the live timeline connection while open.
-4. If `AutoCaption` is not listed, install or update the scripts with `python installer/install.py`, then restart Resolve.
+4. If `AutoCaption` is not listed, install or update the scripts with `.\venv\Scripts\python.exe installer\install.py`, then restart Resolve.
 
 ---
 
