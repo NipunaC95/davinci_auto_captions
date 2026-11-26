@@ -137,18 +137,26 @@ class AutoCaptionApp(tk.Tk):
         self.main_paned.add(left_card, weight=1)
 
         # 1. Media Input Section
-        ttk.Label(left_card, text="1. Select Media File", style="Section.TLabel").pack(anchor="w", pady=(0, 6))
-        file_row = ttk.Frame(left_card, style="Card.TFrame")
-        file_row.pack(fill="x", pady=(0, 15))
-        self.file_entry = tk.Entry(file_row, textvariable=self.input_file_path, bg="#282834", fg="#FFFFFF",
-                                   insertbackground="#FFFFFF", relief="flat", font=("Helvetica", 10))
-        self.file_entry.pack(side="left", fill="x", expand=True, ipady=4, padx=(0, 6))
-        ttk.Button(file_row, text="Browse...", style="Secondary.TButton", command=self._browse_file).pack(side="right")
+        ttk.Label(left_card, text="1. Select Video or Audio File", style="Section.TLabel").pack(anchor="w", pady=(0, 6))
+        
+        # Big Choose File Button
+        self.choose_file_btn = ttk.Button(
+            left_card, text="📁 Choose Video / Audio File...", style="Accent.TButton", command=self._browse_file
+        )
+        self.choose_file_btn.pack(fill="x", pady=(0, 6), ipady=3)
 
-        # Timeline Media Auto-Detect Button (if connected)
-        self.detect_btn = ttk.Button(left_card, text="🎯 Fetch from Active Timeline", style="Secondary.TButton",
-                                     command=self._fetch_from_timeline)
-        self.detect_btn.pack(fill="x", pady=(0, 15))
+        # File display label
+        self.file_display_lbl = tk.Label(
+            left_card, text="No file selected yet", bg="#1A1A22", fg="#9E9EAF",
+            font=("Helvetica", 10), wraplength=320, justify="left", padx=8, pady=6, relief="flat"
+        )
+        self.file_display_lbl.pack(fill="x", pady=(0, 15))
+
+        # Show Timeline Fetch button ONLY if Studio API is connected
+        if self.bridge.is_connected():
+            self.detect_btn = ttk.Button(left_card, text="🎯 Fetch from Active Timeline (Studio)", style="Secondary.TButton",
+                                         command=self._fetch_from_timeline)
+            self.detect_btn.pack(fill="x", pady=(0, 15))
 
         # 2. Style Preset Picker
         ttk.Label(left_card, text="2. Drag-and-Drop Style Preset", style="Section.TLabel").pack(anchor="w", pady=(0, 6))
@@ -293,21 +301,38 @@ class AutoCaptionApp(tk.Tk):
         )
         if file_path:
             self.input_file_path.set(file_path)
+            fname = os.path.basename(file_path)
+            self.file_display_lbl.config(
+                text=f"✓ Ready: {fname}",
+                fg="#6EE7B7",
+                bg="#064E3B",
+                font=("Helvetica", 10, "bold")
+            )
+            self.status_text.set(f"Selected: {fname}. Pick your style and click Transcribe!")
 
     def _fetch_from_timeline(self):
         info = self.bridge.get_timeline_info()
         source_files = info.get("source_files", [])
         if source_files:
             self.input_file_path.set(source_files[0])
-            self.status_text.set(f"Loaded media from timeline: {os.path.basename(source_files[0])}")
+            fname = os.path.basename(source_files[0])
+            self.file_display_lbl.config(
+                text=f"✓ Timeline: {fname}",
+                fg="#6EE7B7",
+                bg="#064E3B",
+                font=("Helvetica", 10, "bold")
+            )
+            self.status_text.set(f"Loaded media from timeline: {fname}")
         else:
-            messagebox.showinfo("Timeline Media", "No media files found on active timeline. Please select a video file manually.")
+            messagebox.showinfo("Timeline Media", "In DaVinci Resolve Free, please select your video file directly using the 'Choose Video File' button.")
 
     def _start_transcription(self):
         media_path = self.input_file_path.get().strip()
         if not media_path or not os.path.exists(media_path):
-            messagebox.showwarning("File Missing", "Please select a valid media file first!")
-            return
+            self._browse_file()
+            media_path = self.input_file_path.get().strip()
+            if not media_path:
+                return
 
         self.transcribe_btn.config(state="disabled")
         self.progress_value.set(0.0)
