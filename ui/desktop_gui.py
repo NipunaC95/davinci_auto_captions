@@ -378,7 +378,8 @@ class AutoCaptionApp(tk.Tk):
                 )
                 self.after(0, lambda: self._on_transcription_success(segments))
             except Exception as e:
-                self.after(0, lambda: self._on_transcription_error(str(e)))
+                error_message = str(e)
+                self.after(0, lambda error_message=error_message: self._on_transcription_error(error_message))
 
         threading.Thread(target=worker, daemon=True).start()
 
