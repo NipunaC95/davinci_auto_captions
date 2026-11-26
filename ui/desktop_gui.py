@@ -21,7 +21,7 @@ class AutoCaptionApp(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("Auto Caption Studio — DaVinci Resolve v21 (Free & Studio)")
-        self.geometry("960, 720")
+        self.geometry("960x720")
         self.minsize(860, 640)
         self.configure(bg="#141418")
 
