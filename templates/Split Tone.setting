@@ -70,13 +70,13 @@
 				HorizontalJustificationNew = Input { Value = 3, },
 				TransformRotation = Input { Value = 1, },
 				TransformSize = Input { Value = 1, },
-				Name1 = Input { Value = "Gold Gradient Fill", },
+				Name1 = Input { Value = "Gradient Fill", },
 				Type1 = Input { Value = 2, },
 				ShadingGradient1 = Input {
 					Value = Gradient {
 						Colors = {
-							[0] = { 1.0, 0.88, 0.0, 1 },
-							[1] = { 1.0, 1.0, 1.0, 1 }
+							[0] = { 1.0, 0.88, 0.0, 1.0 },
+							[1] = { 1.0, 1.0, 1.0, 1.0 }
 						}
 					},
 				},
@@ -93,9 +93,9 @@
 				Name3 = Input { Value = "Drop Shadow", },
 				Enabled3 = Input { Value = 1, },
 				Type3 = Input { Value = 1, },
-				Red3 = Input { Value = 0, },
-				Green3 = Input { Value = 0, },
-				Blue3 = Input { Value = 0, },
+				Red3 = Input { Value = 0.0, },
+				Green3 = Input { Value = 0.0, },
+				Blue3 = Input { Value = 0.0, },
 				Alpha3 = Input { Value = 0.9, },
 				Offset3 = Input { Value = { 0.006, -0.006 }, },
 				Softness3 = Input { Value = 1, },

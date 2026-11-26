@@ -1,0 +1,143 @@
+{
+	Tools = ordered() {
+		NeonGlowPink = GroupOperator {
+			CtrlWZoom = false,
+			Inputs = ordered() {
+				Input1 = InstanceInput {
+					SourceOp = "Template",
+					Source = "StyledText",
+					Page = "Controls",
+				},
+				Input2 = InstanceInput {
+					SourceOp = "Template",
+					Source = "Font",
+					ControlGroup = 2,
+					Page = "Controls",
+				},
+				Input3 = InstanceInput {
+					SourceOp = "Template",
+					Source = "Style",
+					ControlGroup = 2,
+					Page = "Controls",
+				},
+				Input4 = InstanceInput {
+					SourceOp = "Template",
+					Source = "Size",
+					Default = 0.058,
+					Page = "Controls",
+				},
+				Input5 = InstanceInput {
+					SourceOp = "Template",
+					Source = "Center",
+					Page = "Controls",
+				},
+				Input6 = InstanceInput {
+					SourceOp = "Template",
+					Source = "CharacterSpacingClone",
+					Name = "Tracking",
+					Default = 1,
+					Page = "Controls",
+				},
+				Input7 = InstanceInput {
+					SourceOp = "Template",
+					Source = "LineSpacingClone",
+					Default = 1,
+					Page = "Controls",
+				}
+			},
+			Outputs = {
+				MainOutput1 = InstanceOutput {
+					SourceOp = "KeyframeStretcher1",
+					Source = "Result",
+					Name = "Output",
+				}
+			},
+			Tools = ordered() {
+				Template = TextPlus {
+					CtrlWZoom = false,
+					NameSet = true,
+					Inputs = {
+				Width = Input { Value = 1920, },
+				Height = Input { Value = 1080, },
+				UseFrameFormatSettings = Input { Value = 1, },
+				["Gamut.SLogVersion"] = Input { Value = FuID { "SLog2" }, },
+				Center = Input { Value = { 0.5, 0.22 }, },
+				StyledText = Input { Value = "SAMPLE CAPTION", },
+				Font = Input { Value = "Arial Black", },
+				Style = Input { Value = "Regular", },
+				Size = Input { Value = 0.058, },
+				VerticalJustificationNew = Input { Value = 3, },
+				HorizontalJustificationNew = Input { Value = 3, },
+				TransformRotation = Input { Value = 1, },
+				TransformSize = Input { Value = 1, },
+				Name1 = Input { Value = "Solid Fill", },
+				Red1 = Input { Value = 1.0, },
+				Green1 = Input { Value = 0.30980392156862746, },
+				Blue1 = Input { Value = 0.6392156862745098, },
+				Alpha1 = Input { Value = 1.0, },
+				Name2 = Input { Value = "Stroke Outline", },
+				Enabled2 = Input { Value = 1, },
+				Type2 = Input { Value = 1, },
+				Thickness2 = Input { Value = 0.014, },
+				Red2 = Input { Value = 0.7215686274509804, },
+				Green2 = Input { Value = 0.1803921568627451, },
+				Blue2 = Input { Value = 1.0, },
+				Alpha2 = Input { Value = 1.0, },
+				PriorityBack2 = Input { Value = 9, },
+				Softness2 = Input { Value = 1, },
+				SoftnessX2 = Input { Value = 8, },
+				SoftnessY2 = Input { Value = 8, },
+				Name5 = Input { Value = "Magenta Atmosphere Glow", },
+				Enabled5 = Input { Value = 1, },
+				Type5 = Input { Value = 1, },
+				Thickness5 = Input { Value = 0.035, },
+				Red5 = Input { Value = 0.7215686274509804, },
+				Green5 = Input { Value = 0.1803921568627451, },
+				Blue5 = Input { Value = 1.0, },
+				Alpha5 = Input { Value = 0.55, },
+				Softness5 = Input { Value = 1, },
+				SoftnessX5 = Input { Value = 24, },
+				SoftnessY5 = Input { Value = 24, },
+				PriorityBack5 = Input { Value = -5, },
+					},
+					ViewInfo = OperatorInfo { Pos = { 10, 10 } },
+				},
+				PopTransform = Transform {
+					CtrlWZoom = false,
+					Inputs = {
+						Input = Input {
+							SourceOp = "Template",
+							Source = "Output",
+						},
+						Size = Input {
+							SourceOp = "PopSizeSpline",
+							Source = "Value",
+						},
+					},
+					ViewInfo = OperatorInfo { Pos = { 120, 10 } },
+				},
+				KeyframeStretcher1 = KeyStretcher {
+					Inputs = {
+						Keyframes = Input {
+							SourceOp = "PopTransform",
+							Source = "Output",
+						},
+						SourceEnd = Input { Value = 120, },
+						StretchStart = Input { Value = 10, },
+						StretchEnd = Input { Value = 115, },
+					},
+					ViewInfo = OperatorInfo { Pos = { 230, 10 } },
+				}
+			},
+		},
+		PopSizeSpline = BezierSpline {
+			SplineColor = { Red = 255, Green = 200, Blue = 0 },
+			KeyFrames = {
+				[0] = { 0.82, Flags = { Linear = true } },
+				[4] = { 1.08, Flags = { Linear = true } },
+				[7] = { 1.00, Flags = { Linear = true } }
+			}
+		}
+	},
+	ActiveTool = "NeonGlowPink"
+}

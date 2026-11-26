@@ -456,6 +456,13 @@ class AutoCaptionApp(tk.Tk):
                 card, text=style_name, bg="#1F1F27", fg="#FFFFFF",
                 font=("Helvetica", 10, "bold"), wraplength=230, justify="left",
             ).pack(fill="x", anchor="w", pady=(0, 5))
+            tk.Label(
+                card,
+                text="ANIMATED POP-IN" if style.get("animated") else "STATIC",
+                bg="#1F1F27",
+                fg="#F3A63B" if style.get("animated") else "#9E9EAF",
+                font=("Helvetica", 8, "bold"),
+            ).pack(anchor="w", pady=(0, 4))
             preview = tk.Canvas(card, width=230, height=92, highlightthickness=0)
             preview.pack(fill="x", pady=(0, 5))
             draw_preview(preview, style)

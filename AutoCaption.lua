@@ -216,6 +216,9 @@ local function style_preview_html(style)
     local stroke = html_escape(style.stroke or "#000000")
     local background = html_escape(style.background or "#18181D")
     local name = html_escape(style.name)
+    if style.animated then
+        name = name .. " [ANIMATED POP]"
+    end
     local sample
     if style.kind == "gradient" then
         sample = '<font color="' .. fill .. '"><b>VIRAL</b></font> <font color="#FFFFFF"><b>CAPTION</b></font>'

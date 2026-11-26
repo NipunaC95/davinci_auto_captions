@@ -15,7 +15,7 @@ A professional, high-performance auto-captioning plugin and drag-and-drop animat
 
 ## 🎨 72 Visual Styles Included
 
-The eight original styles below are joined by 64 generated variants: eight visual families, each available in Lemon, Cyan, Pink, Lime, Orange, Violet, Ice Blue, and Rose Gold palettes. The desktop app and Resolve panel show visual previews for all styles before transcription begins.
+The eight original styles below are joined by 64 generated variants: eight visual families, each available in Lemon, Cyan, Pink, Lime, Orange, Violet, Ice Blue, and Rose Gold palettes. Every generated variant has a pop-in entrance animation. The desktop app and Resolve panel show visual previews for all styles before transcription begins.
 
 The generated families are **Viral Pop**, **Neon Glow**, **Comic Burst**, **Glass Caption**, **Clean Creator**, **Outline Flash**, **Gradient Rush**, and **Shadow Pop**. Variant names use the format `Family - Palette` (for example, `Neon Glow - Cyan`).
 

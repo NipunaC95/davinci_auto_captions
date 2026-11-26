@@ -71,7 +71,7 @@ def install_all():
     script_entry = os.path.join(base_dir, "AutoCaption.lua")
     target_script = os.path.join(script_folder, "AutoCaption.lua")
     lua_styles = ",\n".join(
-        "    { name = %s, description = %s, fill = %s, stroke = %s, kind = %s, background = %s, accent = %s }" % (
+        "    { name = %s, description = %s, fill = %s, stroke = %s, kind = %s, background = %s, accent = %s, animated = %s }" % (
             _lua_quote(style["name"]),
             _lua_quote(style["description"]),
             _lua_quote(style.get("color_hex", "#FFFFFF")),
@@ -79,6 +79,7 @@ def install_all():
             _lua_quote(style.get("preview_kind", "pop")),
             _lua_quote(style.get("preview_bg", "#18181D")),
             _lua_quote(style.get("preview_accent", "#000000")),
+            str(style.get("animated", False)).lower(),
         )
         for style in STYLES.values()
     )
