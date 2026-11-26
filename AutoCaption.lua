@@ -11,6 +11,14 @@ local existing_win = ui:FindWindow(winID)
 if existing_win then
     existing_win:Show()
     existing_win:Raise()
+    existing_win.On[winID].Close = function(ev)
+        disp:ExitLoop()
+    end
+    existing_win.On.CloseBtn.Clicked = function(ev)
+        disp:ExitLoop()
+    end
+    disp:RunLoop()
+    existing_win:Hide()
     return
 end
 
@@ -101,7 +109,7 @@ ui:VGroup({ Spacing = 8, Margin = 15 }, {
         ui:Button({ ID = "BrowseBtn", Text = "Browse...", Weight = 0.2 }),
     }),
     ui:Label({ ID = "TimelineStatus", Text = '<small style="color:#10B981;">● Active Timeline: ' .. timeline_name .. " (" .. #found_media .. " media clips detected)</small>", Weight = 0 }),
-    ui:Timer({ ID = "LiveTimelineTimer", Interval = 3000, SingleShot = false }),
+    ui:Button({ ID = "RefreshTimelineBtn", Text = "↻ Refresh Active Timeline", Weight = 0 }),
     ui:VGap(4),
 
     -- Section 2: Style Preset Picker
@@ -207,7 +215,7 @@ local function refresh_live_timeline()
     end
 end
 
-win.On.LiveTimelineTimer.Timer = refresh_live_timeline
+win.On.RefreshTimelineBtn.Clicked = refresh_live_timeline
 
 win.On.ActionBtn.Clicked = function(ev)
     local media_file = items.FileBox.Text
@@ -270,7 +278,5 @@ win.On.ActionBtn.Clicked = function(ev)
 end
 
 win:Show()
-items.LiveTimelineTimer:Start()
 disp:RunLoop()
-items.LiveTimelineTimer:Stop()
 win:Hide()
