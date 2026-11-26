@@ -86,9 +86,9 @@ def main():
 
     res = install_all()
     if res["success"]:
-        print(f"\n[✓] Successfully installed {res['templates_count']} Drag-and-Drop Caption Styles!")
+        print(f"\n[OK] Successfully installed {res['templates_count']} Drag-and-Drop Caption Styles!")
         print(f"    Destination: {res['target_titles_dir']}")
-        print(f"\n[✓] Successfully installed Resolve Scripts to:")
+        print(f"\n[OK] Successfully installed Resolve Scripts to:")
         for s in res["installed_scripts"]:
             print(f"    -> {s}")
 
