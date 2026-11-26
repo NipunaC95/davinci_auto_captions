@@ -1,0 +1,145 @@
+{
+	Tools = ordered() {
+		SplitTone = GroupOperator {
+			CtrlWZoom = false,
+			Inputs = ordered() {
+				Input1 = InstanceInput {
+					SourceOp = "Template",
+					Source = "StyledText",
+					Page = "Controls",
+				},
+				Input2 = InstanceInput {
+					SourceOp = "Template",
+					Source = "Font",
+					ControlGroup = 2,
+					Page = "Controls",
+				},
+				Input3 = InstanceInput {
+					SourceOp = "Template",
+					Source = "Style",
+					ControlGroup = 2,
+					Page = "Controls",
+				},
+				Input4 = InstanceInput {
+					SourceOp = "Template",
+					Source = "Size",
+					Default = 0.078,
+					Page = "Controls",
+				},
+				Input5 = InstanceInput {
+					SourceOp = "Template",
+					Source = "Center",
+					Page = "Controls",
+				},
+				Input6 = InstanceInput {
+					SourceOp = "Template",
+					Source = "CharacterSpacingClone",
+					Name = "Tracking",
+					Default = 1,
+					Page = "Controls",
+				},
+				Input7 = InstanceInput {
+					SourceOp = "Template",
+					Source = "LineSpacingClone",
+					Default = 1,
+					Page = "Controls",
+				}
+			},
+			Outputs = {
+				MainOutput1 = InstanceOutput {
+					SourceOp = "KeyframeStretcher1",
+					Source = "Result",
+					Name = "Output",
+				}
+			},
+			Tools = ordered() {
+				Template = TextPlus {
+					CtrlWZoom = false,
+					NameSet = true,
+					Inputs = {
+				Width = Input { Value = 1920, },
+				Height = Input { Value = 1080, },
+				UseFrameFormatSettings = Input { Value = 1, },
+				["Gamut.SLogVersion"] = Input { Value = FuID { "SLog2" }, },
+				Center = Input { Value = { 0.5, 0.22 }, },
+				StyledText = Input { Value = "SAMPLE CAPTION", },
+				Font = Input { Value = "Arial Black", },
+				Style = Input { Value = "Regular", },
+				Size = Input { Value = 0.078, },
+				VerticalJustificationNew = Input { Value = 3, },
+				HorizontalJustificationNew = Input { Value = 3, },
+				TransformRotation = Input { Value = 1, },
+				TransformSize = Input { Value = 1, },
+				Name1 = Input { Value = "Gold Gradient Fill", },
+				Type1 = Input { Value = 2, },
+				ShadingGradient1 = Input {
+					Value = Gradient {
+						Colors = {
+							[0] = { 1.0, 0.88, 0.0, 1 },
+							[1] = { 1.0, 1.0, 1.0, 1 }
+						}
+					},
+				},
+				ShadingMappingAngle1 = Input { Value = 90, },
+				Name2 = Input { Value = "Stroke Outline", },
+				Enabled2 = Input { Value = 1, },
+				Type2 = Input { Value = 1, },
+				Thickness2 = Input { Value = 0.022, },
+				Red2 = Input { Value = 0.0, },
+				Green2 = Input { Value = 0.0, },
+				Blue2 = Input { Value = 0.0, },
+				Alpha2 = Input { Value = 1.0, },
+				PriorityBack2 = Input { Value = 9, },
+				Name3 = Input { Value = "Drop Shadow", },
+				Enabled3 = Input { Value = 1, },
+				Type3 = Input { Value = 1, },
+				Red3 = Input { Value = 0, },
+				Green3 = Input { Value = 0, },
+				Blue3 = Input { Value = 0, },
+				Alpha3 = Input { Value = 0.9, },
+				Offset3 = Input { Value = { 0.006, -0.006 }, },
+				Softness3 = Input { Value = 1, },
+				SoftnessX3 = Input { Value = 2, },
+				SoftnessY3 = Input { Value = 2, },
+					},
+					ViewInfo = OperatorInfo { Pos = { 10, 10 } },
+				},
+				PopTransform = Transform {
+					CtrlWZoom = false,
+					Inputs = {
+						Input = Input {
+							SourceOp = "Template",
+							Source = "Output",
+						},
+						Size = Input {
+							SourceOp = "PopSizeSpline",
+							Source = "Value",
+						},
+					},
+					ViewInfo = OperatorInfo { Pos = { 120, 10 } },
+				},
+				KeyframeStretcher1 = KeyStretcher {
+					Inputs = {
+						Keyframes = Input {
+							SourceOp = "PopTransform",
+							Source = "Output",
+						},
+						SourceEnd = Input { Value = 120, },
+						StretchStart = Input { Value = 10, },
+						StretchEnd = Input { Value = 115, },
+					},
+					ViewInfo = OperatorInfo { Pos = { 230, 10 } },
+				}
+			},
+		},
+		PopSizeSpline = BezierSpline {
+			SplineColor = { Red = 255, Green = 200, Blue = 0 },
+			KeyFrames = {
+				[0] = { 0.82, Flags = { Linear = true } },
+				[4] = { 1.08, Flags = { Linear = true } },
+				[7] = { 1.00, Flags = { Linear = true } }
+			}
+		}
+	},
+	ActiveTool = "SplitTone"
+}
