@@ -61,6 +61,8 @@ def install_all():
         os.makedirs(script_folder, exist_ok=True)
         target_script = os.path.join(script_folder, "AutoCaption.py")
         shutil.copy2(script_entry, target_script)
+        with open(os.path.join(script_folder, "AutoCaption.project"), "w", encoding="utf-8") as marker:
+            marker.write(base_dir)
         installed_scripts.append(target_script)
 
         # Copy runtime modules next to the installed entry script so it works

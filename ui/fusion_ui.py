@@ -5,7 +5,6 @@ Appears directly INSIDE DaVinci Resolve under Workspace > Scripts > Utility > Au
 
 import os
 import sys
-import subprocess
 import tempfile
 import threading
 
@@ -29,13 +28,14 @@ def run_fusion_ui(fusion_app=None, scripting_module=None, resolve_app=None):
         return
 
     # Project directories
-    project_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    project_dir = os.environ.get(
+        "AUTO_CAPTION_PROJECT_DIR",
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+    )
     if sys.platform.startswith("win"):
         venv_py = os.path.join(project_dir, "venv", "Scripts", "python.exe")
     else:
         venv_py = os.path.join(project_dir, "venv", "bin", "python3")
-    if not os.path.exists(venv_py):
-        venv_py = sys.executable
     quick_caption_cli = os.path.join(project_dir, "core", "quick_caption.py")
 
     # Detect current project and timeline
@@ -132,10 +132,7 @@ def run_fusion_ui(fusion_app=None, scripting_module=None, resolve_app=None):
         # Action Buttons
         ui.VGap(4),
         ui.Button({ 'ID': 'ActionBtn', 'Text': '⚡ AUTO-CAPTION TIMELINE NOW', 'Weight': 0 }),
-        ui.HGroup({ 'Weight': 0 }, [
-            ui.Button({ 'ID': 'StudioGuiBtn', 'Text': '🚀 Open Full Word Editor (Standalone GUI)', 'Weight': 0.5 }),
-            ui.Button({ 'ID': 'CloseBtn', 'Text': 'Close Panel', 'Weight': 0.5 }),
-        ]),
+        ui.Button({ 'ID': 'CloseBtn', 'Text': 'Close Panel', 'Weight': 0 }),
     ]))
 
     items = win.GetItems()
@@ -211,12 +208,14 @@ def run_fusion_ui(fusion_app=None, scripting_module=None, resolve_app=None):
             if not current or not os.path.exists(current):
                 items['FileBox'].Text = live_media[0]
 
-    def on_studio_gui(ev):
-        dispatcher.ExitLoop()
-        desktop_script = os.path.join(project_dir, "ui", "desktop_gui.py")
-        subprocess.Popen([venv_py, desktop_script])
-
     def on_run_caption(ev):
+        if not os.path.isfile(venv_py):
+            items['StatusMsg'].Text = (
+                '<span style="color:#EF4444;">Whisper is not installed. Run the setup commands '
+                'from the project README, then reopen this panel.</span>'
+            )
+            return
+
         target_media = items['FileBox'].Text.strip()
         if not target_media or not os.path.exists(target_media):
             items['StatusMsg'].Text = '<span style="color:#EF4444;">Please select a media file or open a timeline with clips first!</span>'
@@ -284,7 +283,6 @@ def run_fusion_ui(fusion_app=None, scripting_module=None, resolve_app=None):
     win.On['CloseBtn'].Clicked = on_close
     win.On['StyleCombo'].CurrentIndexChanged = on_style_changed
     win.On['BrowseBtn'].Clicked = on_browse
-    win.On['StudioGuiBtn'].Clicked = on_studio_gui
     win.On['ActionBtn'].Clicked = on_run_caption
     win.On['LiveTimelineTimer'].Timer = refresh_live_timeline
 
