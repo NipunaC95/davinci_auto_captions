@@ -52,14 +52,14 @@ class AutoCaptionApp(tk.Tk):
     def _toggle_compact(self):
         self.is_compact = not self.is_compact
         if self.is_compact:
-            self.geometry("400x720")
-            self.main_paned.paneconfig(self.right_card, hide=True)
-            self.compact_btn.config(text="⇲ Expand Studio View")
-            self.title("Auto Caption — DaVinci Side Panel")
+            self.main_paned.forget(self.right_card)
+            self.geometry("420x720")
+            self.compact_btn.config(text="⇲ Expand Studio")
+            self.title("Auto Caption — Floating Side Panel")
         else:
+            self.main_paned.add(self.right_card, weight=2)
             self.geometry("960x720")
-            self.main_paned.paneconfig(self.right_card, hide=False)
-            self.compact_btn.config(text="⇱ Compact Side Panel")
+            self.compact_btn.config(text="⇱ Compact Panel")
             self.title("Auto Caption Studio — DaVinci Resolve v21 (Free & Studio)")
 
     def _setup_styles(self):
@@ -237,7 +237,7 @@ class AutoCaptionApp(tk.Tk):
         self.tree.bind("<Double-1>", self._on_edit_caption)
 
         # Export & Direct Import Action Bar
-        action_bar = ttk.Frame(right_card, style="Card.TFrame")
+        action_bar = ttk.Frame(self.right_card, style="Card.TFrame")
         action_bar.pack(fill="x", pady=(5, 0))
 
         self.import_btn = ttk.Button(action_bar, text="🎬 Send to DaVinci Timeline", style="Success.TButton",
