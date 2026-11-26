@@ -103,10 +103,15 @@ class CaptionTranscriber:
     def _detect_device(self) -> str:
         try:
             import torch
-            if torch.cuda.is_available():
-                return "cuda"
-        except Exception:
-            pass
+        except ImportError as error:
+            raise RuntimeError("PyTorch is required for Whisper transcription.") from error
+        if torch.cuda.is_available():
+            return "cuda"
+        if sys.platform.startswith("win") and shutil.which("nvidia-smi"):
+            raise RuntimeError(
+                "An NVIDIA GPU is present, but PyTorch cannot access CUDA. "
+                "Install the CUDA-enabled requirements from requirements.txt."
+            )
         # Note: PyTorch on Apple Silicon MPS does not support float64 DTW alignments for Whisper word timestamps.
         # CPU is blazingly fast on Apple Silicon (400+ fps) and avoids DTW tensor crashes.
         return "cpu"
@@ -114,15 +119,12 @@ class CaptionTranscriber:
     def _load_model(self, progress_callback: Optional[Callable[[str, float], None]] = None):
         if self._model is None:
             if progress_callback:
-                progress_callback(f"Loading Whisper '{self.model_size}' model...", 0.1)
+                progress_callback(
+                    f"Loading Whisper '{self.model_size}' model on {self.device.upper()}...",
+                    0.1,
+                )
             import whisper
-            # Note: For some PyTorch/MPS setups, whisper models load on CPU first then can be evaluated
-            try:
-                self._model = whisper.load_model(self.model_size, device=self.device)
-            except Exception:
-                # Fallback to CPU if MPS encounters an unsupported kernel
-                self.device = "cpu"
-                self._model = whisper.load_model(self.model_size, device="cpu")
+            self._model = whisper.load_model(self.model_size, device=self.device)
 
     def extract_audio(self, media_path: str, output_wav: Optional[str] = None) -> str:
         """Extracts 16kHz mono WAV audio suitable for Whisper speech recognition."""
