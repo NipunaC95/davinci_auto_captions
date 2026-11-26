@@ -39,6 +39,7 @@ def generate_fcpxml(
     stroke_width = style.get("stroke_width", 3)
     stroke_rgb = style.get("stroke_rgb", (0.0, 0.0, 0.0))
     stroke_color_str = f"{stroke_rgb[0]} {stroke_rgb[1]} {stroke_rgb[2]} 1"
+    animated = style.get("animated", False)
 
     color_str = f"{color_rgb[0]} {color_rgb[1]} {color_rgb[2]} 1"
     frame_dur = frames_to_fcpxml_time(1, fps)
@@ -89,8 +90,31 @@ def generate_fcpxml(
             f'              <text-style-def id="{ts_id}">',
             f'                <text-style font="{font}" fontSize="72" fontColor="{color_str}" bold="1" strokeColor="{stroke_color_str}" strokeWidth="{stroke_width}" alignment="center"/>',
             f'              </text-style-def>',
-            f'            </title>'
         ])
+        if animated and duration_frames > 1:
+            lines.extend([
+                '              <adjust-transform>',
+                '                <param name="scale">',
+            ])
+            if duration_frames >= 4:
+                peak_frame = max(1, min(3, duration_frames - 2))
+                settle_frame = min(6, duration_frames - 1)
+                lines.extend([
+                    '                  <keyframe time="0s" value="0.82 0.82"/>',
+                    f'                  <keyframe time="{frames_to_fcpxml_time(peak_frame, fps)}" value="1.08 1.08" curve="ease-out"/>',
+                    f'                  <keyframe time="{frames_to_fcpxml_time(settle_frame, fps)}" value="1 1" curve="ease-out"/>',
+                ])
+            else:
+                settle_frame = duration_frames - 1
+                lines.extend([
+                    '                  <keyframe time="0s" value="0.82 0.82"/>',
+                    f'                  <keyframe time="{frames_to_fcpxml_time(settle_frame, fps)}" value="1 1" curve="ease-out"/>',
+                ])
+            lines.extend([
+                '                </param>',
+                '              </adjust-transform>',
+            ])
+        lines.append('            </title>')
         last_end_frame = start_frame + duration_frames
 
     lines.extend([
